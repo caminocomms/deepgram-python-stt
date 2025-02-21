@@ -7,25 +7,30 @@ from deepgram import (
     DeepgramClient,
     LiveTranscriptionEvents,
     LiveOptions,
-    DeepgramClientOptions
+    DeepgramClientOptions,
 )
 
 load_dotenv()
 
 app_socketio = Flask("app_socketio")
-socketio = SocketIO(app_socketio, cors_allowed_origins=['http://127.0.0.1:8000'])
+socketio = SocketIO(
+    app_socketio,
+    cors_allowed_origins=["http://localhost:8001/", "http://localhost:8001"],
+)
 
 API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
 # Set up client configuration
 config = DeepgramClientOptions(
-    verbose=logging.WARN,  # Change to logging.INFO or logging.DEBUG for more verbose output
-    options={"keepalive": "true"}
+    verbose=logging.INFO,  # Change to logging.INFO or logging.DEBUG for more verbose output
+    options={"keepalive": "true"},
+    url="http://localhost:8081",
 )
 
 deepgram = DeepgramClient(API_KEY, config)
 
 dg_connection = None
+
 
 def initialize_deepgram_connection():
     global dg_connection
@@ -38,8 +43,16 @@ def initialize_deepgram_connection():
     def on_message(self, result, **kwargs):
         transcript = result.channel.alternatives[0].transcript
         if len(transcript) > 0:
-            print(result.channel.alternatives[0].transcript)
-            socketio.emit('transcription_update', {'transcription': transcript})
+            timing = {"start": result.start, "end": result.start + result.duration}
+
+            socketio.emit(
+                "transcription_update",
+                {
+                    "transcription": transcript,
+                    "is_final": result.is_final,
+                    "timing": timing,
+                },
+            )
 
     def on_close(self, close, **kwargs):
         print(f"\n\n{close}\n\n")
@@ -53,18 +66,27 @@ def initialize_deepgram_connection():
     dg_connection.on(LiveTranscriptionEvents.Error, on_error)
 
     # Define the options for the live transcription
-    options = LiveOptions(model="nova-3", language="en-US")
+    options = LiveOptions(
+        model="c0d1a568-ce81-4fea-97e7-bd45cb1fdf3c",
+        language="en-US",
+        interim_results=True,
+        no_delay=False,
+        smart_format=True,
+        utterance_end_ms="1000",
+    )
 
-    if dg_connection.start(options) is False: # THIS CAUSES ERROR
+    if dg_connection.start(options) is False:  # THIS CAUSES ERROR
         print("Failed to start connection")
         exit()
 
-@socketio.on('audio_stream')
+
+@socketio.on("audio_stream")
 def handle_audio_stream(data):
     if dg_connection:
         dg_connection.send(data)
 
-@socketio.on('toggle_transcription')
+
+@socketio.on("toggle_transcription")
 def handle_toggle_transcription(data):
     print("toggle_transcription", data)
     action = data.get("action")
@@ -72,15 +94,18 @@ def handle_toggle_transcription(data):
         print("Starting Deepgram connection")
         initialize_deepgram_connection()
 
-@socketio.on('connect')
-def server_connect():
-    print('Client connected')
 
-@socketio.on('restart_deepgram')
+@socketio.on("connect")
+def server_connect():
+    print("Client connected")
+
+
+@socketio.on("restart_deepgram")
 def restart_deepgram():
-    print('Restarting Deepgram connection')
+    print("Restarting Deepgram connection")
     initialize_deepgram_connection()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     logging.info("Starting SocketIO server.")
     socketio.run(app_socketio, debug=True, allow_unsafe_werkzeug=True, port=5001)

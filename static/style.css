@@ -148,8 +148,41 @@ body {
   color: rgb(237, 237, 242);
   font-size: 24px;
   font-family: "Inter", sans-serif;
-  margin: 10px 0;
-  text-align: center;
+  text-align: left;
+}
+
+.captions-container {
+  height: 300px;
+  width: 80%;
+  max-width: 800px;
+  overflow-y: auto;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.captions-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.captions-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.captions-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.interim {
+  color: #888;
+  font-style: italic;
+}
+
+.final {
+  color: rgb(237, 237, 242);
 }
 
 h1 {
@@ -210,11 +243,4 @@ h1 {
   content: "\f061";
   margin-right: -4px;
   margin-left: 8px;
-}
-
-.click {
-  position: absolute;
-  height: 150px;
-  left: 20px;
-  top: -144px;
 }

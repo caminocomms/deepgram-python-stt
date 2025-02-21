@@ -8,7 +8,23 @@ socket = io(
 );
 
 socket.on("transcription_update", (data) => {
-  document.getElementById("captions").innerHTML = data.transcription;
+  const captions = document.getElementById("captions");
+  
+  let timeString = "";
+  if (data.timing) {
+    const start = data.timing.start.toFixed(2);
+    const end = data.timing.end.toFixed(2);
+    timeString = data.is_final ? 
+      `[${start}s - ${end}s]` : 
+      `[${start}s - ${end}s]`;
+  }
+  
+  const prefix = data.is_final ? "[Is Final] " : "[Interim Result] ";
+  const messageDiv = document.createElement("div");
+  messageDiv.textContent = timeString + " " + prefix + data.transcription;
+  messageDiv.className = data.is_final ? "final" : "interim";
+  captions.appendChild(messageDiv);
+  messageDiv.scrollIntoView({ behavior: "smooth" });
 });
 
 async function getMicrophone() {
