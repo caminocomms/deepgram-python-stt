@@ -67,7 +67,7 @@ def initialize_deepgram_connection():
 
     # Define the options for the live transcription
     options = LiveOptions(
-        model="c0d1a568-ce81-4fea-97e7-bd45cb1fdf3c",
+        model="nova-2",
         language="en-US",
         interim_results=True,
         no_delay=False,
