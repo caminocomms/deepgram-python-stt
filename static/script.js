@@ -29,15 +29,12 @@ fetch('../config/defaults.json')
   .then(response => response.json())
   .then(config => {
     DEFAULT_CONFIG = config;
-    // Initialize UI with defaults
-    setDefaultValues();
-    // Initialize URL with default config
+    // Initialize URL with current config
     updateRequestUrl(getConfig());
   })
   .catch(error => {
     console.error('Error loading default configuration:', error);
-    // Initialize with hardcoded defaults if fetch fails
-    setDefaultValues();
+    // Initialize URL with current config
     updateRequestUrl(getConfig());
   });
 
@@ -439,7 +436,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateRequestUrl(getConfig());
   });
 
-  // Initialize URL with default config
+  // Initialize URL with current config instead of defaults
   updateRequestUrl(getConfig());
 
   recordButton.addEventListener("change", async () => {

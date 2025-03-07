@@ -83,6 +83,8 @@ def initialize_deepgram_connection(config_options=None):
     if config_options:
         default_options.update(config_options)
 
+    # Remove base_url as it's not a valid LiveOptions parameter
+    default_options.pop("base_url", None)
     options = LiveOptions(**default_options)
 
     if dg_connection.start(options) is False:
