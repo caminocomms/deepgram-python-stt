@@ -122,8 +122,8 @@ function importConfig(input) {
         content.classList.remove('collapsed');
     }
 
-    // Update the URL display
-    updateRequestUrl(getConfig());
+    // Update the URL display with import mode
+    updateRequestUrl(getConfig(), true);
 }
 
 socket.on("transcription_update", (data) => {
@@ -253,7 +253,7 @@ function toggleConfig() {
     content.classList.toggle('collapsed');
 }
 
-function updateRequestUrl(config) {
+function updateRequestUrl(config, isImport = false) {
     const urlElement = document.getElementById('requestUrl');
     const urlText = urlElement.textContent;
     const currentBaseUrl = urlText.split('?')[0];
@@ -266,23 +266,25 @@ function updateRequestUrl(config) {
     
     const params = new URLSearchParams();
     
-    // Get previous params and line break positions
+    // Get previous params for highlighting changes
     const paramsText = urlText.split('?')[1] || '';
     const prevParams = new URLSearchParams(
         paramsText
-            .replace(/\n/g, '')  // Remove line breaks
-            .replace(/&$/, '')   // Remove trailing ampersands
+            .replace(/\n/g, '')
+            .replace(/&$/, '')
     );
     
-    // Store the previous line break positions by finding which parameters started each line
-    const existingLines = urlText.split('\n');
+    // Store line break positions only if not importing
     const lineStartParams = new Set();
-    if (existingLines.length > 1) {
-        for (let i = 1; i < existingLines.length; i++) {
-            const lineParams = existingLines[i].split('&');
-            if (lineParams[0]) {
-                const paramName = lineParams[0].split('=')[0];
-                lineStartParams.add(paramName);
+    if (!isImport) {
+        const existingLines = urlText.split('\n');
+        if (existingLines.length > 1) {
+            for (let i = 1; i < existingLines.length; i++) {
+                const lineParams = existingLines[i].split('&');
+                if (lineParams[0]) {
+                    const paramName = lineParams[0].split('=')[0];
+                    lineStartParams.add(paramName);
+                }
             }
         }
     }
@@ -315,7 +317,7 @@ function updateRequestUrl(config) {
     const safetyMargin = 40;
     const maxLineLength = Math.floor((containerWidth - safetyMargin) / avgCharWidth);
     
-    // Format URL with intelligent line breaks and highlighting
+    // Format URL with line breaks
     const pairs = params.toString().split('&');
     let currentLine = baseUrlDisplay + '?';
     const outputLines = [];
@@ -326,10 +328,10 @@ function updateRequestUrl(config) {
         const hasChanged = prevValue !== null && prevValue !== value;
         const formattedPair = hasChanged ? `<span class="highlight-change">${pair}</span>` : pair;
         
-        // Check if this parameter started a new line previously
+        // Use simpler line wrapping for imports
         const shouldBreakLine = currentLine !== baseUrlDisplay + '?' && 
-            (lineStartParams.has(key) || 
-             (currentLine.length + pair.length + 1 > maxLineLength && !lineStartParams.size));
+            ((!isImport && lineStartParams.has(key)) || 
+             (currentLine.length + pair.length + 1 > maxLineLength));
         
         if (shouldBreakLine) {
             outputLines.push(currentLine + '&');
