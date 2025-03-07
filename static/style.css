@@ -465,3 +465,27 @@ h1 {
 .import-button i {
   font-size: 14px;
 }
+
+.reset-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px auto 0;
+  padding: 8px 12px;
+  background: #47aca9;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: white;
+  transition: all 0.2s;
+}
+
+.reset-button:hover {
+  background: #3d918e;
+}
+
+.reset-button i {
+  font-size: 14px;
+}

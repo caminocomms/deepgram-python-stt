@@ -236,6 +236,26 @@ function toggleExtraParams() {
     content.classList.toggle('collapsed');
 }
 
+function resetConfig() {
+    // Reset all options to defaults
+    document.getElementById('baseUrl').value = 'api.deepgram.com';
+    document.getElementById('model').value = 'nova-3';
+    document.getElementById('language').value = 'en';
+    document.getElementById('utterance_end_ms').value = '1000';
+    document.getElementById('endpointing').value = '10';
+    document.getElementById('smart_format').checked = false;
+    document.getElementById('interim_results').checked = false;
+    document.getElementById('no_delay').checked = false;
+    document.getElementById('dictation').checked = false;
+    document.getElementById('numerals').checked = false;
+    document.getElementById('profanity_filter').checked = false;
+    document.getElementById('redact').checked = false;
+    document.getElementById('extraParams').value = '{}';
+    
+    // Update the URL display
+    updateRequestUrl(getConfig());
+}
+
 function parseUrlParams(url) {
     try {
         // Handle ws:// and wss:// protocols by temporarily replacing them
@@ -274,6 +294,21 @@ function parseUrlParams(url) {
 }
 
 function importConfig(input) {
+    // Reset all options to defaults first
+    document.getElementById('baseUrl').value = 'api.deepgram.com';
+    document.getElementById('model').value = 'nova-3';
+    document.getElementById('language').value = 'en';
+    document.getElementById('utterance_end_ms').value = '1000';
+    document.getElementById('endpointing').value = '10';
+    document.getElementById('smart_format').checked = false;
+    document.getElementById('interim_results').checked = false;
+    document.getElementById('no_delay').checked = false;
+    document.getElementById('dictation').checked = false;
+    document.getElementById('numerals').checked = false;
+    document.getElementById('profanity_filter').checked = false;
+    document.getElementById('redact').checked = false;
+    document.getElementById('extraParams').value = '{}';
+
     let config;
     
     // Try parsing as JSON first
@@ -285,8 +320,7 @@ function importConfig(input) {
     }
     
     if (!config) {
-        alert('Invalid configuration format. Please provide a valid JSON object or URL.');
-        return;
+        throw new Error('Invalid configuration format. Please provide a valid JSON object or URL.');
     }
 
     // Update text inputs
@@ -316,6 +350,11 @@ function importConfig(input) {
     });
     if (Object.keys(extra).length > 0) {
         extraParams.value = JSON.stringify(extra, null, 2);
+        // Expand extra params section
+        const header = document.querySelector('.extra-params-header');
+        const content = document.getElementById('extraParamsContent');
+        header.classList.remove('collapsed');
+        content.classList.remove('collapsed');
     }
 
     // Update the URL display
@@ -326,6 +365,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const recordButton = document.getElementById("record");
   const configPanel = document.querySelector('.config-panel');
   const copyButton = document.getElementById('copyUrl');
+  const resetButton = document.getElementById('resetButton');
+  
+  // Reset button functionality
+  if (resetButton) {
+    resetButton.addEventListener('click', resetConfig);
+  }
   
   // Copy URL functionality
   copyButton.addEventListener('click', () => {
@@ -384,13 +429,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Add import button handler
   document.getElementById('importButton').addEventListener('click', () => {
-    const input = document.getElementById('importInput').value.trim();
+    const importInput = document.getElementById('importInput');
+    const input = importInput.value.trim();
     if (!input) {
       alert('Please enter a configuration to import.');
       return;
     }
-    importConfig(input);
-    document.getElementById('importInput').value = ''; // Clear input after import
+    
+    try {
+      importConfig(input);
+      // Only clear input if import was successful
+      importInput.value = '';
+    } catch (e) {
+      alert('Invalid configuration format. Please provide a valid JSON object or URL.');
+    }
   });
 
   // Add keyboard shortcut (Enter key) for import input
