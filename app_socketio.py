@@ -24,18 +24,26 @@ API_KEY = os.getenv("DEEPGRAM_API_KEY")
 config = DeepgramClientOptions(
     verbose=logging.INFO,  # Change to logging.INFO or logging.DEBUG for more verbose output
     options={"keepalive": "true"},
-    url="http://localhost:8081",
 )
 
-deepgram = DeepgramClient(API_KEY, config)
-
+deepgram = None
 dg_connection = None
 
 
-def initialize_deepgram_connection():
-    global dg_connection
-    # Initialize Deepgram client and connection
-    dg_connection = deepgram.listen.live.v("1")
+def initialize_deepgram_connection(config_options=None):
+    global dg_connection, deepgram, config
+
+    # Update client config with base URL and create new client
+    if config_options and "base_url" in config_options:
+        base_url = config_options.pop("base_url")
+        config.url = f"wss://{base_url}"  # Use wss:// for secure WebSocket
+        deepgram = DeepgramClient(API_KEY, config)
+
+    if not deepgram:
+        print("No base URL provided")
+        return
+
+    dg_connection = deepgram.listen.websocket.v("1")  # Use websocket instead of live
 
     def on_open(self, open, **kwargs):
         print(f"\n\n{open}\n\n")
@@ -65,17 +73,28 @@ def initialize_deepgram_connection():
     dg_connection.on(LiveTranscriptionEvents.Close, on_close)
     dg_connection.on(LiveTranscriptionEvents.Error, on_error)
 
-    # Define the options for the live transcription
-    options = LiveOptions(
-        model="nova-2",
-        language="en-US",
-        interim_results=True,
-        no_delay=False,
-        smart_format=True,
-        utterance_end_ms="1000",
-    )
+    default_options = {
+        "model": "nova-3",
+        "language": "en",
+        "utterance_end_ms": "1000",
+        "endpointing": "10",
+        "smart_format": True,
+        "interim_results": True,
+        "no_delay": False,
+        "dictation": False,
+        "numerals": False,
+        "profanity_filter": False,
+        "redact": False,
+        "version": "latest",
+        "extra": {},
+    }
 
-    if dg_connection.start(options) is False:  # THIS CAUSES ERROR
+    if config_options:
+        default_options.update(config_options)
+
+    options = LiveOptions(**default_options)
+
+    if dg_connection.start(options) is False:
         print("Failed to start connection")
         exit()
 
@@ -88,11 +107,20 @@ def handle_audio_stream(data):
 
 @socketio.on("toggle_transcription")
 def handle_toggle_transcription(data):
+    global dg_connection
     print("toggle_transcription", data)
     action = data.get("action")
     if action == "start":
         print("Starting Deepgram connection")
-        initialize_deepgram_connection()
+        config = data.get("config", {})
+        # Get base URL from client
+        base_url = config.pop("base_url", "api.deepgram.com")
+        config["base_url"] = base_url
+        initialize_deepgram_connection(config)
+    elif action == "stop" and dg_connection:
+        print("Closing Deepgram connection")
+        dg_connection.finish()
+        dg_connection = None
 
 
 @socketio.on("connect")

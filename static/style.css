@@ -4,14 +4,12 @@
 
 body {
   color: white;
-  display: flex;
-  align-items: center;
   font-family: "Inter", sans-serif;
-  justify-content: center;
-  flex-direction: column;
-  height: 90vh;
   background-color: #000;
-  padding-top: 100px;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .content {
@@ -19,6 +17,8 @@ body {
   height: 30vh;
   position: relative;
   align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 .mic-checkbox {
@@ -145,21 +145,19 @@ body {
 }
 
 #captions {
-  color: rgb(237, 237, 242);
+  color: #fff;
   font-size: 24px;
   font-family: "Inter", sans-serif;
   text-align: left;
+  min-height: 1.5em;
 }
 
 .captions-container {
-  height: 300px;
-  width: 80%;
-  max-width: 800px;
   overflow-y: auto;
-  margin: 20px auto;
   padding: 20px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
 }
 
 .captions-container::-webkit-scrollbar {
@@ -176,13 +174,31 @@ body {
   border-radius: 4px;
 }
 
+.final-container {
+  height: 25%;
+}
+
+.interim-container {
+  height: 75%;
+}
+
+#finalCaptions {
+  color: #13ef95;
+  font-size: 24px;
+  font-family: "Inter", sans-serif;
+  text-align: left;
+}
+
 .interim {
-  color: #888;
-  font-style: italic;
+  color: #fff;
 }
 
 .final {
-  color: rgb(237, 237, 242);
+  color: #13ef95;
+}
+
+.interim-final {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 h1 {
@@ -243,4 +259,178 @@ h1 {
   content: "\f061";
   margin-right: -4px;
   margin-left: 8px;
+}
+
+.config-panel {
+    width: 100%;
+    margin: 20px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: #fff;
+    box-sizing: border-box;
+}
+
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.config-header i {
+    transition: transform 0.3s ease;
+}
+
+.config-header.collapsed i {
+    transform: rotate(-90deg);
+}
+
+.config-content {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.config-content.collapsed {
+    max-height: 0;
+}
+
+.config-panel h3 {
+    margin: 0;
+    color: #47aca9;
+}
+
+.config-group {
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+.config-group label {
+    display: block;
+    margin: 8px 0;
+    color: #fff;
+    width: 100%;
+}
+
+#extraParams {
+    width: calc(100% - 16px); /* Subtract total horizontal padding */
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #fff;
+    display: block;
+    margin-top: 4px;
+}
+
+#extraParams::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#extraParams {
+    height: 80px;
+    resize: vertical;
+}
+
+.url-display {
+    width: 100%;
+    margin: 20px 0;
+    padding: 12px;
+    padding-bottom: 36px; /* Make room for the copy button */
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-family: monospace;
+    color: #47aca9;
+    font-size: 14px;
+    white-space: pre-line;
+    word-break: keep-all;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.copy-button {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 4px;
+    color: #47aca9;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.copy-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.copy-button.copied {
+    color: #13ef95;
+}
+
+/* Disabled state for config panel */
+.config-panel.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.config-panel.disabled .config-header {
+    cursor: not-allowed;
+}
+
+.container {
+    display: flex;
+    gap: 32px;
+    padding: 32px;
+    height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+}
+
+.left-column {
+    flex: 0 0 25%;
+    min-width: 300px;
+}
+
+.right-column {
+    flex: 1;
+    min-width: 0;
+    gap: 20px;
+}
+
+.highlight-change {
+    animation: highlight 1s ease-in-out;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: rgba(255, 255, 0, 0.4);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+#baseUrl {
+    width: calc(100% - 16px);
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #fff;
+    font-family: monospace;
+    margin-top: 4px;
+    margin-bottom: 12px;
+}
+
+#baseUrl::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
