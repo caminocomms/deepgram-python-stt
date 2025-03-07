@@ -435,6 +435,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const copyButton = document.getElementById('copyUrl');
     const resetButton = document.getElementById('resetButton');
     const simplifyButton = document.getElementById('simplifyButton');
+    const clearButton = document.getElementById('clearButton');
+    
+    // Clear button functionality
+    if (clearButton) {
+        clearButton.addEventListener('click', () => {
+            document.getElementById('captions').innerHTML = '';
+            document.getElementById('finalCaptions').innerHTML = '';
+        });
+    }
     
     // Reset button functionality
     if (resetButton) {
