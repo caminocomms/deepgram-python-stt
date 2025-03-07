@@ -236,6 +236,92 @@ function toggleExtraParams() {
     content.classList.toggle('collapsed');
 }
 
+function parseUrlParams(url) {
+    try {
+        // Handle ws:// and wss:// protocols by temporarily replacing them
+        let modifiedUrl = url;
+        if (url.startsWith('ws://') || url.startsWith('wss://')) {
+            modifiedUrl = url.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://');
+        }
+        
+        const urlObj = new URL(modifiedUrl);
+        const params = {};
+
+        // Extract the hostname as baseUrl, removing /v1/listen if present
+        params.baseUrl = urlObj.hostname + (urlObj.pathname === '/v1/listen' ? '' : urlObj.pathname);
+        
+        // Clean up the search params (remove whitespace and empty parameters)
+        urlObj.searchParams.forEach((value, key) => {
+            const cleanKey = key.trim();
+            const cleanValue = value.trim();
+            if (cleanKey && cleanValue) {
+                // Convert string booleans to actual booleans
+                if (cleanValue.toLowerCase() === 'true') {
+                    params[cleanKey] = true;
+                } else if (cleanValue.toLowerCase() === 'false') {
+                    params[cleanKey] = false;
+                } else {
+                    params[cleanKey] = cleanValue;
+                }
+            }
+        });
+        
+        return params;
+    } catch (e) {
+        console.error('Invalid URL:', e);
+        return null;
+    }
+}
+
+function importConfig(input) {
+    let config;
+    
+    // Try parsing as JSON first
+    try {
+        config = JSON.parse(input);
+    } catch (e) {
+        // If not JSON, try parsing as URL
+        config = parseUrlParams(input);
+    }
+    
+    if (!config) {
+        alert('Invalid configuration format. Please provide a valid JSON object or URL.');
+        return;
+    }
+
+    // Update text inputs
+    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && config[id]) {
+            element.value = config[id];
+        }
+    });
+
+    // Update checkboxes
+    ['smart_format', 'interim_results', 'no_delay', 'dictation', 
+     'numerals', 'profanity_filter', 'redact'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && config[id] !== undefined) {
+            element.checked = config[id];
+        }
+    });
+
+    // Update extra params if present
+    const extraParams = document.getElementById('extraParams');
+    const extra = {};
+    Object.keys(config).forEach(key => {
+        if (!document.getElementById(key)) {
+            extra[key] = config[key];
+        }
+    });
+    if (Object.keys(extra).length > 0) {
+        extraParams.value = JSON.stringify(extra, null, 2);
+    }
+
+    // Update the URL display
+    updateRequestUrl(getConfig());
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const recordButton = document.getElementById("record");
   const configPanel = document.querySelector('.config-panel');
@@ -243,7 +329,9 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Copy URL functionality
   copyButton.addEventListener('click', () => {
-    const url = document.getElementById('requestUrl').textContent;
+    const url = document.getElementById('requestUrl').textContent
+      .replace(/\s+/g, '') // Remove all whitespace including newlines
+      .replace(/&amp;/g, '&'); // Fix any HTML-encoded ampersands
     navigator.clipboard.writeText(url).then(() => {
       copyButton.classList.add('copied');
       setTimeout(() => copyButton.classList.remove('copied'), 1000);
@@ -293,4 +381,23 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize extra params as collapsed
   const extraParamsHeader = document.querySelector('.extra-params-header');
   extraParamsHeader.classList.add('collapsed');
+
+  // Add import button handler
+  document.getElementById('importButton').addEventListener('click', () => {
+    const input = document.getElementById('importInput').value.trim();
+    if (!input) {
+      alert('Please enter a configuration to import.');
+      return;
+    }
+    importConfig(input);
+    document.getElementById('importInput').value = ''; // Clear input after import
+  });
+
+  // Add keyboard shortcut (Enter key) for import input
+  document.getElementById('importInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('importButton').click();
+    }
+  });
 });
