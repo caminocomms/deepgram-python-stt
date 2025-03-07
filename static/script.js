@@ -3,6 +3,11 @@ let socket;
 let microphone;
 let audioContext;
 let processor;
+// Track which parameters have been changed during this session
+let changedParams = new Set();
+// Track if we're in a post-import state
+let isImported = false;
+
 let DEFAULT_CONFIG = {
     "base_url": "api.deepgram.com",
     "model": "nova-3",
@@ -64,6 +69,9 @@ function setDefaultValues() {
 
 function resetConfig() {
     if (!DEFAULT_CONFIG) return;
+    // Clear changed parameters tracking and import state
+    changedParams.clear();
+    isImported = false;
     setDefaultValues();
     updateRequestUrl(getConfig());
 }
@@ -73,20 +81,35 @@ function importConfig(input) {
     
     // Reset all options to defaults first
     setDefaultValues();
-
+    
     let config;
     
-    // Try parsing as JSON first
     try {
         config = JSON.parse(input);
     } catch (e) {
-        // If not JSON, try parsing as URL
         config = parseUrlParams(input);
     }
     
     if (!config) {
         throw new Error('Invalid configuration format. Please provide a valid JSON object or URL.');
     }
+
+    // Set import state
+    isImported = true;
+
+    // Mark all parameters as changed during import, regardless of their values
+    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
+        if (config[id]) {
+            changedParams.add(id);
+        }
+    });
+
+    ['smart_format', 'interim_results', 'no_delay', 'dictation', 
+     'numerals', 'profanity_filter', 'redact'].forEach(id => {
+        if (config[id] !== undefined) {
+            changedParams.add(id);
+        }
+    });
 
     // Update text inputs
     ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
@@ -253,7 +276,7 @@ function toggleConfig() {
     content.classList.toggle('collapsed');
 }
 
-function updateRequestUrl(config, isImport = false) {
+function updateRequestUrl(config, forceShowAll = false) {
     const urlElement = document.getElementById('requestUrl');
     const urlText = urlElement.textContent;
     const currentBaseUrl = urlText.split('?')[0];
@@ -274,9 +297,9 @@ function updateRequestUrl(config, isImport = false) {
             .replace(/&$/, '')
     );
     
-    // Store line break positions only if not importing
+    // Store line break positions only if not forcing all params
     const lineStartParams = new Set();
-    if (!isImport) {
+    if (!forceShowAll) {
         const existingLines = urlText.split('\n');
         if (existingLines.length > 1) {
             for (let i = 1; i < existingLines.length; i++) {
@@ -302,13 +325,19 @@ function updateRequestUrl(config, isImport = false) {
     
     // Add boolean parameters
     Object.entries(paramMapping).forEach(([paramName, configKey]) => {
-        params.append(paramName, config[configKey]);
+        const hasBeenChanged = changedParams.has(configKey);
+        const isDifferentFromDefault = config[configKey] !== DEFAULT_CONFIG[configKey];
+        if (forceShowAll || isImported || hasBeenChanged || isDifferentFromDefault) {
+            params.append(paramName, config[configKey]);
+        }
     });
     
     // Add extra parameters if any
     const extra = config.extra;
-    for (const [key, value] of Object.entries(extra)) {
-        params.append(key, value);
+    if (Object.keys(extra).length > 0 || changedParams.has('extraParams')) {
+        for (const [key, value] of Object.entries(extra)) {
+            params.append(key, value);
+        }
     }
     
     // Calculate maxLineLength for new parameters
@@ -330,7 +359,7 @@ function updateRequestUrl(config, isImport = false) {
         
         // Use simpler line wrapping for imports
         const shouldBreakLine = currentLine !== baseUrlDisplay + '?' && 
-            ((!isImport && lineStartParams.has(key)) || 
+            ((!forceShowAll && lineStartParams.has(key)) || 
              (currentLine.length + pair.length + 1 > maxLineLength));
         
         if (shouldBreakLine) {
@@ -414,12 +443,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Add event listeners to all config inputs
+  // Add event listeners to all config inputs with change tracking
   const configInputs = document.querySelectorAll('#configForm input');
   configInputs.forEach(input => {
-    input.addEventListener('change', () => updateRequestUrl(getConfig()));
+    input.addEventListener('change', () => {
+        changedParams.add(input.id);
+        updateRequestUrl(getConfig());
+    });
     if (input.type === 'text') {
-      input.addEventListener('input', () => updateRequestUrl(getConfig()));
+        input.addEventListener('input', () => {
+            changedParams.add(input.id);
+            updateRequestUrl(getConfig());
+        });
     }
   });
   
