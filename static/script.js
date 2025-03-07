@@ -3,11 +3,131 @@ let socket;
 let microphone;
 let audioContext;
 let processor;
+let DEFAULT_CONFIG = {
+    "base_url": "api.deepgram.com",
+    "model": "nova-3",
+    "language": "en",
+    "utterance_end_ms": "1000",
+    "endpointing": "10",
+    "smart_format": false,
+    "interim_results": false,
+    "no_delay": false,
+    "dictation": false,
+    "numerals": false,
+    "profanity_filter": false,
+    "redact": false,
+    "extra": {}
+};
 
 const socket_port = 5001;
 socket = io(
   "http://" + window.location.hostname + ":" + socket_port.toString()
 );
+
+// Fetch default configuration
+fetch('../config/defaults.json')
+  .then(response => response.json())
+  .then(config => {
+    DEFAULT_CONFIG = config;
+    // Initialize UI with defaults
+    setDefaultValues();
+    // Initialize URL with default config
+    updateRequestUrl(getConfig());
+  })
+  .catch(error => {
+    console.error('Error loading default configuration:', error);
+    // Initialize with hardcoded defaults if fetch fails
+    setDefaultValues();
+    updateRequestUrl(getConfig());
+  });
+
+function setDefaultValues() {
+    if (!DEFAULT_CONFIG) return;
+    
+    // Set text input defaults
+    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && DEFAULT_CONFIG[id]) {
+            element.value = DEFAULT_CONFIG[id];
+        }
+    });
+
+    // Set checkbox defaults
+    ['smart_format', 'interim_results', 'no_delay', 'dictation', 
+     'numerals', 'profanity_filter', 'redact'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && DEFAULT_CONFIG[id] !== undefined) {
+            element.checked = DEFAULT_CONFIG[id];
+        }
+    });
+
+    // Set extra params default
+    document.getElementById('extraParams').value = JSON.stringify(DEFAULT_CONFIG.extra || {}, null, 2);
+}
+
+function resetConfig() {
+    if (!DEFAULT_CONFIG) return;
+    setDefaultValues();
+    updateRequestUrl(getConfig());
+}
+
+function importConfig(input) {
+    if (!DEFAULT_CONFIG) return;
+    
+    // Reset all options to defaults first
+    setDefaultValues();
+
+    let config;
+    
+    // Try parsing as JSON first
+    try {
+        config = JSON.parse(input);
+    } catch (e) {
+        // If not JSON, try parsing as URL
+        config = parseUrlParams(input);
+    }
+    
+    if (!config) {
+        throw new Error('Invalid configuration format. Please provide a valid JSON object or URL.');
+    }
+
+    // Update text inputs
+    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && config[id]) {
+            element.value = config[id];
+        }
+    });
+
+    // Update checkboxes
+    ['smart_format', 'interim_results', 'no_delay', 'dictation', 
+     'numerals', 'profanity_filter', 'redact'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && config[id] !== undefined) {
+            element.checked = config[id];
+        }
+    });
+
+    // Update extra params if present
+    const extraParams = document.getElementById('extraParams');
+    const extra = {};
+    Object.keys(config).forEach(key => {
+        if (!document.getElementById(key)) {
+            extra[key] = config[key];
+        }
+    });
+    if (Object.keys(extra).length > 0) {
+        extraParams.value = JSON.stringify(extra, null, 2);
+        // Expand extra params section
+        const header = document.querySelector('.extra-params-header');
+        const content = document.getElementById('extraParamsContent');
+        header.classList.remove('collapsed');
+        content.classList.remove('collapsed');
+    }
+
+    // Update the URL display
+    updateRequestUrl(getConfig());
+}
 
 socket.on("transcription_update", (data) => {
   const interimCaptions = document.getElementById("captions");
@@ -236,26 +356,6 @@ function toggleExtraParams() {
     content.classList.toggle('collapsed');
 }
 
-function resetConfig() {
-    // Reset all options to defaults
-    document.getElementById('baseUrl').value = 'api.deepgram.com';
-    document.getElementById('model').value = 'nova-3';
-    document.getElementById('language').value = 'en';
-    document.getElementById('utterance_end_ms').value = '1000';
-    document.getElementById('endpointing').value = '10';
-    document.getElementById('smart_format').checked = false;
-    document.getElementById('interim_results').checked = false;
-    document.getElementById('no_delay').checked = false;
-    document.getElementById('dictation').checked = false;
-    document.getElementById('numerals').checked = false;
-    document.getElementById('profanity_filter').checked = false;
-    document.getElementById('redact').checked = false;
-    document.getElementById('extraParams').value = '{}';
-    
-    // Update the URL display
-    updateRequestUrl(getConfig());
-}
-
 function parseUrlParams(url) {
     try {
         // Handle ws:// and wss:// protocols by temporarily replacing them
@@ -291,74 +391,6 @@ function parseUrlParams(url) {
         console.error('Invalid URL:', e);
         return null;
     }
-}
-
-function importConfig(input) {
-    // Reset all options to defaults first
-    document.getElementById('baseUrl').value = 'api.deepgram.com';
-    document.getElementById('model').value = 'nova-3';
-    document.getElementById('language').value = 'en';
-    document.getElementById('utterance_end_ms').value = '1000';
-    document.getElementById('endpointing').value = '10';
-    document.getElementById('smart_format').checked = false;
-    document.getElementById('interim_results').checked = false;
-    document.getElementById('no_delay').checked = false;
-    document.getElementById('dictation').checked = false;
-    document.getElementById('numerals').checked = false;
-    document.getElementById('profanity_filter').checked = false;
-    document.getElementById('redact').checked = false;
-    document.getElementById('extraParams').value = '{}';
-
-    let config;
-    
-    // Try parsing as JSON first
-    try {
-        config = JSON.parse(input);
-    } catch (e) {
-        // If not JSON, try parsing as URL
-        config = parseUrlParams(input);
-    }
-    
-    if (!config) {
-        throw new Error('Invalid configuration format. Please provide a valid JSON object or URL.');
-    }
-
-    // Update text inputs
-    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element && config[id]) {
-            element.value = config[id];
-        }
-    });
-
-    // Update checkboxes
-    ['smart_format', 'interim_results', 'no_delay', 'dictation', 
-     'numerals', 'profanity_filter', 'redact'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element && config[id] !== undefined) {
-            element.checked = config[id];
-        }
-    });
-
-    // Update extra params if present
-    const extraParams = document.getElementById('extraParams');
-    const extra = {};
-    Object.keys(config).forEach(key => {
-        if (!document.getElementById(key)) {
-            extra[key] = config[key];
-        }
-    });
-    if (Object.keys(extra).length > 0) {
-        extraParams.value = JSON.stringify(extra, null, 2);
-        // Expand extra params section
-        const header = document.querySelector('.extra-params-header');
-        const content = document.getElementById('extraParamsContent');
-        header.classList.remove('collapsed');
-        content.classList.remove('collapsed');
-    }
-
-    // Update the URL display
-    updateRequestUrl(getConfig());
 }
 
 document.addEventListener("DOMContentLoaded", () => {

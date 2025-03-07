@@ -1,5 +1,6 @@
 import logging
 import os
+import json
 from flask import Flask
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
@@ -19,6 +20,10 @@ socketio = SocketIO(
 )
 
 API_KEY = os.getenv("DEEPGRAM_API_KEY")
+
+# Load default configuration
+with open("config/defaults.json", "r") as f:
+    DEFAULT_CONFIG = json.load(f)
 
 # Set up client configuration
 config = DeepgramClientOptions(
@@ -73,21 +78,8 @@ def initialize_deepgram_connection(config_options=None):
     dg_connection.on(LiveTranscriptionEvents.Close, on_close)
     dg_connection.on(LiveTranscriptionEvents.Error, on_error)
 
-    default_options = {
-        "model": "nova-3",
-        "language": "en",
-        "utterance_end_ms": "1000",
-        "endpointing": "10",
-        "smart_format": False,
-        "interim_results": False,
-        "no_delay": False,
-        "dictation": False,
-        "numerals": False,
-        "profanity_filter": False,
-        "redact": False,
-        "extra": {},
-    }
-
+    # Use default config and update with any provided options
+    default_options = DEFAULT_CONFIG.copy()
     if config_options:
         default_options.update(config_options)
 
