@@ -89,6 +89,11 @@ async function startRecording() {
   isRecording = true;
   microphone = await getMicrophone();
   console.log("Client: Waiting to open microphone");
+  
+  // Send configuration before starting microphone
+  const config = getConfig();
+  socket.emit("toggle_transcription", { action: "start", config: config });
+  
   await openMicrophone(microphone, socket);
 }
 
@@ -107,6 +112,11 @@ async function stopRecording() {
 function getConfig() {
     const config = {
         base_url: document.getElementById('baseUrl').value,
+        model: document.getElementById('model').value,
+        language: document.getElementById('language').value,
+        utterance_end_ms: document.getElementById('utterance_end_ms').value,
+        endpointing: document.getElementById('endpointing').value,
+        version: document.getElementById('version').value,
         smart_format: document.getElementById('smart_format').checked,
         interim_results: document.getElementById('interim_results').checked,
         no_delay: document.getElementById('no_delay').checked,
@@ -235,21 +245,21 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Add event listeners to all config inputs
-  const configInputs = document.querySelectorAll('#configForm input[type="checkbox"], #baseUrl');
+  const configInputs = document.querySelectorAll('#configForm input');
   configInputs.forEach(input => {
     input.addEventListener('change', () => updateRequestUrl(getConfig()));
+    if (input.type === 'text') {
+      input.addEventListener('input', () => updateRequestUrl(getConfig()));
+    }
   });
   
-  // Also listen for input events on baseUrl for real-time updates
-  document.getElementById('baseUrl').addEventListener('input', () => updateRequestUrl(getConfig()));
-
   // Add event listener for extra params
   document.getElementById('extraParams').addEventListener('input', () => {
     try {
       JSON.parse(document.getElementById('extraParams').value || '{}');
       updateRequestUrl(getConfig());
     } catch (e) {
-      // Don't update URL if JSON is invalid
+      console.warn('Invalid JSON in extra params');
     }
   });
 
@@ -265,22 +275,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (recordButton.checked) {
       try {
         await startRecording();
-        const config = getConfig();
-        updateRequestUrl(config);
-        socket.emit('toggle_transcription', { 
-          action: 'start',
-          config: config
-        });
-        // Disable config panel while recording
-        configPanel.classList.add('disabled');
-      } catch (e) {
-        console.error('Error:', e);
+      } catch (error) {
+        console.error("Failed to start recording:", error);
         recordButton.checked = false;
       }
     } else {
       await stopRecording();
-      // Re-enable config panel
-      configPanel.classList.remove('disabled');
     }
   });
 });

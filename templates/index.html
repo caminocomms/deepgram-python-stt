@@ -38,31 +38,50 @@
           </div>
           <div id="configContent" class="config-content">
             <form id="configForm">
-              <div class="config-group">
-                <label>Base URL:
-                  <input type="text" id="baseUrl" value="api.deepgram.com" placeholder="api.deepgram.com">
-                </label>
-                <label>
-                  <input type="checkbox" id="smart_format" checked> Smart Format
-                </label>
-                <label>
-                  <input type="checkbox" id="interim_results" checked> Interim Results
-                </label>
-                <label>
-                  <input type="checkbox" id="no_delay" checked> No Delay
-                </label>
-                <label>
-                  <input type="checkbox" id="dictation"> Dictation
-                </label>
-                <label>
-                  <input type="checkbox" id="numerals"> Numerals
-                </label>
-                <label>
-                  <input type="checkbox" id="profanity_filter" checked> Profanity Filter
-                </label>
-                <label>
-                  <input type="checkbox" id="redact"> Redact
-                </label>
+              <div class="config-columns">
+                <div class="config-group text-inputs">
+                  <label>Base URL:
+                    <input type="text" id="baseUrl" value="api.deepgram.com" placeholder="api.deepgram.com">
+                  </label>
+                  <label>Model:
+                    <input type="text" id="model" value="nova-3" placeholder="nova-3">
+                  </label>
+                  <label>Language:
+                    <input type="text" id="language" value="en" placeholder="en">
+                  </label>
+                  <label>Utterance End (ms):
+                    <input type="text" id="utterance_end_ms" value="1000" placeholder="1000">
+                  </label>
+                  <label>Endpointing:
+                    <input type="text" id="endpointing" value="10" placeholder="10">
+                  </label>
+                  <label>Version:
+                    <input type="text" id="version" value="latest" placeholder="latest">
+                  </label>
+                </div>
+                <div class="config-group boolean-inputs">
+                  <label>
+                    <input type="checkbox" id="smart_format" checked> Smart Format
+                  </label>
+                  <label>
+                    <input type="checkbox" id="interim_results" checked> Interim Results
+                  </label>
+                  <label>
+                    <input type="checkbox" id="no_delay" checked> No Delay
+                  </label>
+                  <label>
+                    <input type="checkbox" id="dictation"> Dictation
+                  </label>
+                  <label>
+                    <input type="checkbox" id="numerals"> Numerals
+                  </label>
+                  <label>
+                    <input type="checkbox" id="profanity_filter" checked> Profanity Filter
+                  </label>
+                  <label>
+                    <input type="checkbox" id="redact"> Redact
+                  </label>
+                </div>
               </div>
               <div class="config-group">
                 <label>Extra Parameters (JSON):
