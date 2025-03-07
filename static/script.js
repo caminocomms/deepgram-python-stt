@@ -421,101 +421,115 @@ function parseUrlParams(url) {
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const recordButton = document.getElementById("record");
-  const configPanel = document.querySelector('.config-panel');
-  const copyButton = document.getElementById('copyUrl');
-  const resetButton = document.getElementById('resetButton');
-  
-  // Reset button functionality
-  if (resetButton) {
-    resetButton.addEventListener('click', resetConfig);
-  }
-  
-  // Copy URL functionality
-  copyButton.addEventListener('click', () => {
-    const url = document.getElementById('requestUrl').textContent
-      .replace(/\s+/g, '') // Remove all whitespace including newlines
-      .replace(/&amp;/g, '&'); // Fix any HTML-encoded ampersands
-    navigator.clipboard.writeText(url).then(() => {
-      copyButton.classList.add('copied');
-      setTimeout(() => copyButton.classList.remove('copied'), 1000);
-    });
-  });
+function simplifyUrl() {
+    // Clear import state and changed params
+    isImported = false;
+    changedParams.clear();
+    // Update URL to show only non-default params
+    updateRequestUrl(getConfig());
+}
 
-  // Add event listeners to all config inputs with change tracking
-  const configInputs = document.querySelectorAll('#configForm input');
-  configInputs.forEach(input => {
-    input.addEventListener('change', () => {
-        changedParams.add(input.id);
-        updateRequestUrl(getConfig());
+document.addEventListener("DOMContentLoaded", () => {
+    const recordButton = document.getElementById("record");
+    const configPanel = document.querySelector('.config-panel');
+    const copyButton = document.getElementById('copyUrl');
+    const resetButton = document.getElementById('resetButton');
+    const simplifyButton = document.getElementById('simplifyButton');
+    
+    // Reset button functionality
+    if (resetButton) {
+        resetButton.addEventListener('click', resetConfig);
+    }
+    
+    // Simplify button functionality
+    if (simplifyButton) {
+        simplifyButton.addEventListener('click', simplifyUrl);
+    }
+    
+    // Copy URL functionality
+    copyButton.addEventListener('click', () => {
+        const url = document.getElementById('requestUrl').textContent
+            .replace(/\s+/g, '') // Remove all whitespace including newlines
+            .replace(/&amp;/g, '&'); // Fix any HTML-encoded ampersands
+        navigator.clipboard.writeText(url).then(() => {
+            copyButton.classList.add('copied');
+            setTimeout(() => copyButton.classList.remove('copied'), 1000);
+        });
     });
-    if (input.type === 'text') {
-        input.addEventListener('input', () => {
+
+    // Add event listeners to all config inputs with change tracking
+    const configInputs = document.querySelectorAll('#configForm input');
+    configInputs.forEach(input => {
+        input.addEventListener('change', () => {
             changedParams.add(input.id);
             updateRequestUrl(getConfig());
         });
-    }
-  });
-  
-  // Add event listener for extra params
-  document.getElementById('extraParams').addEventListener('input', () => {
-    try {
-      JSON.parse(document.getElementById('extraParams').value || '{}');
-      updateRequestUrl(getConfig());
-    } catch (e) {
-      console.warn('Invalid JSON in extra params');
-    }
-  });
-
-  // Add resize listener to update URL formatting when window size changes
-  window.addEventListener('resize', () => {
-    updateRequestUrl(getConfig());
-  });
-
-  // Initialize URL with current config instead of defaults
-  updateRequestUrl(getConfig());
-
-  recordButton.addEventListener("change", async () => {
-    if (recordButton.checked) {
-      try {
-        await startRecording();
-      } catch (error) {
-        console.error("Failed to start recording:", error);
-        recordButton.checked = false;
-      }
-    } else {
-      await stopRecording();
-    }
-  });
-
-  // Initialize extra params as collapsed
-  const extraParamsHeader = document.querySelector('.extra-params-header');
-  extraParamsHeader.classList.add('collapsed');
-
-  // Add import button handler
-  document.getElementById('importButton').addEventListener('click', () => {
-    const importInput = document.getElementById('importInput');
-    const input = importInput.value.trim();
-    if (!input) {
-      alert('Please enter a configuration to import.');
-      return;
-    }
+        if (input.type === 'text') {
+            input.addEventListener('input', () => {
+                changedParams.add(input.id);
+                updateRequestUrl(getConfig());
+            });
+        }
+    });
     
-    try {
-      importConfig(input);
-      // Only clear input if import was successful
-      importInput.value = '';
-    } catch (e) {
-      alert('Invalid configuration format. Please provide a valid JSON object or URL.');
-    }
-  });
+    // Add event listener for extra params
+    document.getElementById('extraParams').addEventListener('input', () => {
+        try {
+            JSON.parse(document.getElementById('extraParams').value || '{}');
+            updateRequestUrl(getConfig());
+        } catch (e) {
+            console.warn('Invalid JSON in extra params');
+        }
+    });
 
-  // Add keyboard shortcut (Enter key) for import input
-  document.getElementById('importInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      document.getElementById('importButton').click();
-    }
-  });
+    // Add resize listener to update URL formatting when window size changes
+    window.addEventListener('resize', () => {
+        updateRequestUrl(getConfig());
+    });
+
+    // Initialize URL with current config instead of defaults
+    updateRequestUrl(getConfig());
+
+    recordButton.addEventListener("change", async () => {
+        if (recordButton.checked) {
+            try {
+                await startRecording();
+            } catch (error) {
+                console.error("Failed to start recording:", error);
+                recordButton.checked = false;
+            }
+        } else {
+            await stopRecording();
+        }
+    });
+
+    // Initialize extra params as collapsed
+    const extraParamsHeader = document.querySelector('.extra-params-header');
+    extraParamsHeader.classList.add('collapsed');
+
+    // Add import button handler
+    document.getElementById('importButton').addEventListener('click', () => {
+        const importInput = document.getElementById('importInput');
+        const input = importInput.value.trim();
+        if (!input) {
+            alert('Please enter a configuration to import.');
+            return;
+        }
+        
+        try {
+            importConfig(input);
+            // Only clear input if import was successful
+            importInput.value = '';
+        } catch (e) {
+            alert('Invalid configuration format. Please provide a valid JSON object or URL.');
+        }
+    });
+
+    // Add keyboard shortcut (Enter key) for import input
+    document.getElementById('importInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('importButton').click();
+        }
+    });
 });
