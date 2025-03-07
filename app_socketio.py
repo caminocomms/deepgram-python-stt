@@ -85,7 +85,6 @@ def initialize_deepgram_connection(config_options=None):
         "numerals": False,
         "profanity_filter": False,
         "redact": False,
-        "version": "latest",
         "extra": {},
     }
 

@@ -233,8 +233,42 @@ h1 {
   width: 100%;
 }
 
+.extra-params-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  margin: 8px 0;
+}
+
+.extra-params-header h4 {
+  margin: 0;
+  color: #47aca9;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.extra-params-header i {
+  transition: transform 0.3s ease;
+}
+
+.extra-params-content {
+  max-height: 200px;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.extra-params-content.collapsed {
+  max-height: 0;
+}
+
+.extra-params-header.collapsed i {
+  transform: rotate(-90deg);
+}
+
 #extraParams {
-  width: calc(100% - 16px); /* Subtract total horizontal padding */
+  width: calc(100% - 16px);
   padding: 8px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -242,15 +276,12 @@ h1 {
   color: #fff;
   display: block;
   margin-top: 4px;
+  height: 80px;
+  resize: vertical;
 }
 
 #extraParams::placeholder {
   color: rgba(255, 255, 255, 0.5);
-}
-
-#extraParams {
-  height: 80px;
-  resize: vertical;
 }
 
 .url-display {
@@ -392,4 +423,45 @@ h1 {
 .boolean-inputs input[type="checkbox"] {
   width: 16px;
   height: 16px;
+}
+
+.import-section {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.import-section input {
+  flex: 1;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #fff;
+  font-family: monospace;
+}
+
+.import-section input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.import-button {
+  padding: 8px 16px;
+  background: #47aca9;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.import-button:hover {
+  background: #3d918e;
+}
+
+.import-button i {
+  font-size: 14px;
 }

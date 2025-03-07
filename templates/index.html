@@ -38,6 +38,12 @@
           </div>
           <div id="configContent" class="config-content">
             <form id="configForm">
+              <div class="import-section">
+                <input type="text" id="importInput" placeholder="Paste URL or JSON configuration">
+                <button type="button" id="importButton" class="import-button">
+                  <i class="fas fa-file-import"></i> Import
+                </button>
+              </div>
               <div class="config-columns">
                 <div class="config-group text-inputs">
                   <label>Base URL:
@@ -54,9 +60,6 @@
                   </label>
                   <label>Endpointing:
                     <input type="text" id="endpointing" value="10" placeholder="10">
-                  </label>
-                  <label>Version:
-                    <input type="text" id="version" value="latest" placeholder="latest">
                   </label>
                 </div>
                 <div class="config-group boolean-inputs">
@@ -84,9 +87,13 @@
                 </div>
               </div>
               <div class="config-group">
-                <label>Extra Parameters (JSON):
+                <div class="extra-params-header" onclick="toggleExtraParams()">
+                  <h4>Extra Parameters (JSON)</h4>
+                  <i class="fas fa-chevron-down"></i>
+                </div>
+                <div id="extraParamsContent" class="extra-params-content collapsed">
                   <textarea id="extraParams" placeholder='{"key": "value"}'></textarea>
-                </label>
+                </div>
               </div>
             </form>
           </div>

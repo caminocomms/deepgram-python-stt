@@ -116,7 +116,6 @@ function getConfig() {
         language: document.getElementById('language').value,
         utterance_end_ms: document.getElementById('utterance_end_ms').value,
         endpointing: document.getElementById('endpointing').value,
-        version: document.getElementById('version').value,
         smart_format: document.getElementById('smart_format').checked,
         interim_results: document.getElementById('interim_results').checked,
         no_delay: document.getElementById('no_delay').checked,
@@ -230,6 +229,13 @@ function updateRequestUrl(config) {
     urlElement.innerHTML = outputLines.join('\n');
 }
 
+function toggleExtraParams() {
+    const header = document.querySelector('.extra-params-header');
+    const content = document.getElementById('extraParamsContent');
+    header.classList.toggle('collapsed');
+    content.classList.toggle('collapsed');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const recordButton = document.getElementById("record");
   const configPanel = document.querySelector('.config-panel');
@@ -283,4 +289,8 @@ document.addEventListener("DOMContentLoaded", () => {
       await stopRecording();
     }
   });
+
+  // Initialize extra params as collapsed
+  const extraParamsHeader = document.querySelector('.extra-params-header');
+  extraParamsHeader.classList.add('collapsed');
 });
