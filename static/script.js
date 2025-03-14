@@ -314,6 +314,10 @@ function updateRequestUrl(config, forceShowAll = false) {
     
     // Map snake_case params to camelCase config keys
     const paramMapping = {
+        'model': 'model',
+        'language': 'language',
+        'utterance_end_ms': 'utterance_end_ms',
+        'endpointing': 'endpointing',
         'smart_format': 'smart_format',
         'interim_results': 'interim_results',
         'no_delay': 'no_delay',
@@ -323,7 +327,7 @@ function updateRequestUrl(config, forceShowAll = false) {
         'redact': 'redact'
     };
     
-    // Add boolean parameters
+    // Add parameters
     Object.entries(paramMapping).forEach(([paramName, configKey]) => {
         const hasBeenChanged = changedParams.has(configKey);
         const isDifferentFromDefault = config[configKey] !== DEFAULT_CONFIG[configKey];
