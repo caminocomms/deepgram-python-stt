@@ -5,7 +5,7 @@
     "utterance_end_ms": "1000",
     "endpointing": "10",
     "smart_format": false,
-    "interim_results": false,
+    "interim_results": true,
     "no_delay": false,
     "dictation": false,
     "numerals": false,
