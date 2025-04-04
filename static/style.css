@@ -513,3 +513,29 @@ h1 {
 .clear-button:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+.url-info {
+  color: #47aca9;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 8px;
+  margin: 8px 0;
+  background: rgba(71, 172, 169, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid #47aca9;
+}
+
+.required-option {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.required-option input {
+  cursor: not-allowed;
+}
+
+.required-note {
+  font-size: 12px;
+  color: #888;
+  margin-left: 4px;
+}

@@ -16,7 +16,16 @@ load_dotenv()
 app_socketio = Flask("app_socketio")
 socketio = SocketIO(
     app_socketio,
-    cors_allowed_origins=["http://localhost:8001/", "http://localhost:8001"],
+    cors_allowed_origins=[
+        "http://localhost:8001/",
+        "http://localhost:8001",
+        "http://localhost:8002/",
+        "http://localhost:8002",
+        "http://127.0.0.1:8001/",
+        "http://127.0.0.1:8001",
+        "http://127.0.0.1:8002/",
+        "http://127.0.0.1:8002",
+    ],
 )
 
 API_KEY = os.getenv("DEEPGRAM_API_KEY")
