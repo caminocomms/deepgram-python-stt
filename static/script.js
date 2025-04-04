@@ -637,7 +637,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Add event listener for URL editing
-    document.getElementById('requestUrl').addEventListener('input', function() {
+    document.getElementById('requestUrl').addEventListener('input', function(e) {
+        // Store cursor position
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const cursorOffset = range.startOffset;
+        
         const url = this.textContent.replace(/\s+/g, '').replace(/&amp;/g, '&');
         const config = parseUrlParams(url);
         if (config) {
@@ -663,8 +668,20 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             document.getElementById('extraParams').value = JSON.stringify(extraParams, null, 2);
             
-            // Update URL display
-            updateRequestUrl(getConfig(), true);
+            // Update URL display without resetting to defaults
+            const urlElement = document.getElementById('requestUrl');
+            urlElement.innerHTML = url;
+            
+            // Restore cursor position
+            try {
+                const newRange = document.createRange();
+                newRange.setStart(urlElement.firstChild || urlElement, Math.min(cursorOffset, (urlElement.firstChild || urlElement).length));
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            } catch (e) {
+                console.warn('Could not restore cursor position:', e);
+            }
         }
     });
 });
