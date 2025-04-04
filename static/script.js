@@ -15,7 +15,7 @@ let DEFAULT_CONFIG = {
     "utterance_end_ms": "1000",
     "endpointing": "10",
     "smart_format": false,
-    "interim_results": false,
+    "interim_results": true,
     "no_delay": false,
     "dictation": false,
     "numerals": false,
@@ -234,6 +234,17 @@ async function startRecording() {
   const config = getConfig();
   socket.emit("toggle_transcription", { action: "start", config: config });
   
+  // Display the URL in the interim results container
+  const interimCaptions = document.getElementById("captions");
+  const urlDiv = document.createElement("div");
+  urlDiv.className = "url-info";
+  const url = document.getElementById('requestUrl').textContent
+    .replace(/\s+/g, '') // Remove all whitespace including newlines
+    .replace(/&amp;/g, '&'); // Fix any HTML-encoded ampersands
+  urlDiv.textContent = `Using URL: ${url}`;
+  interimCaptions.appendChild(urlDiv);
+  urlDiv.scrollIntoView({ behavior: "smooth" });
+  
   await openMicrophone(microphone, socket);
 }
 
@@ -253,7 +264,6 @@ function getConfig() {
     const config = {
         base_url: document.getElementById('baseUrl').value,
         model: document.getElementById('model').value,
-        language: document.getElementById('language').value,
         utterance_end_ms: document.getElementById('utterance_end_ms').value,
         endpointing: document.getElementById('endpointing').value,
         smart_format: document.getElementById('smart_format').checked,
@@ -265,6 +275,12 @@ function getConfig() {
         redact: document.getElementById('redact').checked,
         extra: JSON.parse(document.getElementById('extraParams').value || '{}')
     };
+
+    // Only add language if it has a value
+    const language = document.getElementById('language').value;
+    if (language && language !== 'undefined') {
+        config.language = language;
+    }
 
     return config;
 }
@@ -331,16 +347,31 @@ function updateRequestUrl(config, forceShowAll = false) {
     Object.entries(paramMapping).forEach(([paramName, configKey]) => {
         const hasBeenChanged = changedParams.has(configKey);
         const isDifferentFromDefault = config[configKey] !== DEFAULT_CONFIG[configKey];
-        if (forceShowAll || isImported || hasBeenChanged || isDifferentFromDefault) {
-            params.append(paramName, config[configKey]);
+        const value = config[configKey];
+        // Skip empty or undefined values, except for interim_results
+        if (value === undefined || value === '' || value === 'undefined') {
+            return;
+        }
+        // Always include interim_results, otherwise use normal logic
+        if (paramName === 'interim_results' || forceShowAll || isImported || hasBeenChanged || isDifferentFromDefault) {
+            params.append(paramName, value);
         }
     });
     
     // Add extra parameters if any
     const extra = config.extra;
-    if (Object.keys(extra).length > 0 || changedParams.has('extraParams')) {
+    if (Object.keys(extra).length > 0) {
         for (const [key, value] of Object.entries(extra)) {
-            params.append(key, value);
+            if (Array.isArray(value)) {
+                // If value is an array, add each value as a separate parameter
+                value.forEach(v => params.append(key, v));
+            } else if (typeof value === 'object' && value !== null) {
+                // If value is an object, stringify it
+                params.append(key, JSON.stringify(value));
+            } else {
+                // For primitive values, add directly
+                params.append(key, value);
+            }
         }
     }
     
@@ -396,26 +427,53 @@ function parseUrlParams(url) {
             modifiedUrl = url.replace(/^ws:\/\//, 'http://').replace(/^wss:\/\//, 'https://');
         }
         
+        // If URL starts with a path, prepend the default base URL
+        if (url.startsWith('/')) {
+            modifiedUrl = 'http://api.deepgram.com' + url;
+        }
+        
         const urlObj = new URL(modifiedUrl);
         const params = {};
 
         // Extract the hostname as baseUrl, removing /v1/listen if present
-        params.baseUrl = urlObj.hostname + (urlObj.pathname === '/v1/listen' ? '' : urlObj.pathname);
+        params.baseUrl = urlObj.hostname;
         
         // Clean up the search params (remove whitespace and empty parameters)
+        const paramMap = new Map(); // Use Map to handle array parameters
         urlObj.searchParams.forEach((value, key) => {
             const cleanKey = key.trim();
             const cleanValue = value.trim();
             if (cleanKey && cleanValue) {
                 // Convert string booleans to actual booleans
                 if (cleanValue.toLowerCase() === 'true') {
-                    params[cleanKey] = true;
+                    if (paramMap.has(cleanKey)) {
+                        // If key exists, convert to array
+                        const existingValue = paramMap.get(cleanKey);
+                        paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, true] : [existingValue, true]);
+                    } else {
+                        paramMap.set(cleanKey, true);
+                    }
                 } else if (cleanValue.toLowerCase() === 'false') {
-                    params[cleanKey] = false;
+                    if (paramMap.has(cleanKey)) {
+                        const existingValue = paramMap.get(cleanKey);
+                        paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, false] : [existingValue, false]);
+                    } else {
+                        paramMap.set(cleanKey, false);
+                    }
                 } else {
-                    params[cleanKey] = cleanValue;
+                    if (paramMap.has(cleanKey)) {
+                        const existingValue = paramMap.get(cleanKey);
+                        paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, cleanValue] : [existingValue, cleanValue]);
+                    } else {
+                        paramMap.set(cleanKey, cleanValue);
+                    }
                 }
             }
+        });
+        
+        // Convert Map to object
+        paramMap.forEach((value, key) => {
+            params[key] = value;
         });
         
         return params;
@@ -440,6 +498,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const resetButton = document.getElementById('resetButton');
     const simplifyButton = document.getElementById('simplifyButton');
     const clearButton = document.getElementById('clearButton');
+    
+    // Make URL editable
+    const urlElement = document.getElementById('requestUrl');
+    urlElement.contentEditable = true;
+    urlElement.style.cursor = 'text';
     
     // Clear button functionality
     if (clearButton) {
@@ -488,7 +551,34 @@ document.addEventListener("DOMContentLoaded", () => {
     // Add event listener for extra params
     document.getElementById('extraParams').addEventListener('input', () => {
         try {
-            JSON.parse(document.getElementById('extraParams').value || '{}');
+            const extraParams = document.getElementById('extraParams');
+            const rawJson = extraParams.value || '{}';
+            // Parse the raw JSON string to handle duplicate keys
+            const processedExtra = {};
+            const lines = rawJson.split('\n');
+            lines.forEach(line => {
+                const match = line.match(/"([^"]+)":\s*"([^"]+)"/);
+                if (match) {
+                    const [, key, value] = match;
+                    if (processedExtra[key]) {
+                        if (Array.isArray(processedExtra[key])) {
+                            processedExtra[key].push(value);
+                        } else {
+                            processedExtra[key] = [processedExtra[key], value];
+                        }
+                    } else {
+                        processedExtra[key] = value;
+                    }
+                }
+            });
+            // Update the textarea with the processed JSON
+            extraParams.value = JSON.stringify(processedExtra, null, 2);
+            // Mark extra params as changed if they're not empty
+            if (Object.keys(processedExtra).length > 0) {
+                changedParams.add('extraParams');
+            } else {
+                changedParams.delete('extraParams');
+            }
             updateRequestUrl(getConfig());
         } catch (e) {
             console.warn('Invalid JSON in extra params');
@@ -543,6 +633,38 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'Enter') {
             e.preventDefault();
             document.getElementById('importButton').click();
+        }
+    });
+
+    // Add event listener for URL editing
+    document.getElementById('requestUrl').addEventListener('input', function() {
+        const url = this.textContent.replace(/\s+/g, '').replace(/&amp;/g, '&');
+        const config = parseUrlParams(url);
+        if (config) {
+            // Update form fields based on URL
+            Object.entries(config).forEach(([key, value]) => {
+                const element = document.getElementById(key);
+                if (element) {
+                    if (element.type === 'checkbox') {
+                        element.checked = value;
+                    } else {
+                        element.value = value;
+                    }
+                    changedParams.add(key);
+                }
+            });
+            
+            // Update extra parameters
+            const extraParams = {};
+            Object.entries(config).forEach(([key, value]) => {
+                if (!document.getElementById(key)) {
+                    extraParams[key] = value;
+                }
+            });
+            document.getElementById('extraParams').value = JSON.stringify(extraParams, null, 2);
+            
+            // Update URL display
+            updateRequestUrl(getConfig(), true);
         }
     });
 });
