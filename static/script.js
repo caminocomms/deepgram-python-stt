@@ -97,56 +97,49 @@ function importConfig(input) {
     // Set import state
     isImported = true;
 
-    // Mark all parameters as changed during import, regardless of their values
+    // Clear all form fields first
     ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
-        if (config[id]) {
-            changedParams.add(id);
+        const element = document.getElementById(id);
+        if (element) {
+            element.value = '';
         }
     });
 
     ['smart_format', 'interim_results', 'no_delay', 'dictation', 
      'numerals', 'profanity_filter', 'redact'].forEach(id => {
-        if (config[id] !== undefined) {
-            changedParams.add(id);
-        }
-    });
-
-    // Update text inputs
-    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
         const element = document.getElementById(id);
-        if (element && config[id]) {
-            element.value = config[id];
+        if (element) {
+            element.checked = false;
         }
     });
 
-    // Update checkboxes
-    ['smart_format', 'interim_results', 'no_delay', 'dictation', 
-     'numerals', 'profanity_filter', 'redact'].forEach(id => {
-        const element = document.getElementById(id);
-        if (element && config[id] !== undefined) {
-            element.checked = config[id];
+    // Only set values that are explicitly in the config
+    Object.entries(config).forEach(([key, value]) => {
+        const element = document.getElementById(key);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = value === 'true' || value === true;
+            } else {
+                element.value = value;
+            }
+            changedParams.add(key);
+        } else {
+            // If the key doesn't correspond to a form element, it's an extra param
+            const extraParams = document.getElementById('extraParams');
+            const currentExtra = JSON.parse(extraParams.value || '{}');
+            currentExtra[key] = value;
+            extraParams.value = JSON.stringify(currentExtra, null, 2);
+            changedParams.add('extraParams');
         }
     });
 
-    // Update extra params if present
-    const extraParams = document.getElementById('extraParams');
-    const extra = {};
-    Object.keys(config).forEach(key => {
-        if (!document.getElementById(key)) {
-            extra[key] = config[key];
-        }
-    });
-    if (Object.keys(extra).length > 0) {
-        extraParams.value = JSON.stringify(extra, null, 2);
-        // Expand extra params section
-        const header = document.querySelector('.extra-params-header');
-        const content = document.getElementById('extraParamsContent');
-        header.classList.remove('collapsed');
-        content.classList.remove('collapsed');
+    // Set baseUrl if not in config
+    if (!config.baseUrl) {
+        document.getElementById('baseUrl').value = 'api.deepgram.com';
     }
 
-    // Update the URL display with import mode
-    updateRequestUrl(getConfig(), true);
+    // Update the URL display
+    updateRequestUrl();
 }
 
 socket.on("transcription_update", (data) => {
@@ -232,6 +225,15 @@ async function startRecording() {
   
   // Send configuration before starting microphone
   const config = getConfig();
+  // Force interim_results to true for live recording
+  config.interim_results = true;
+  
+  // Update the UI to show interim_results is true
+  document.getElementById('interim_results').checked = true;
+  
+  // Update the URL display to show interim_results=true
+  updateRequestUrl(config);
+  
   socket.emit("toggle_transcription", { action: "start", config: config });
   
   // Display the URL in the interim results container
@@ -257,29 +259,50 @@ async function stopRecording() {
     isRecording = false;
     console.log("Client: Microphone closed");
     document.body.classList.remove("recording");
+    
+    // Reset interim_results to the checkbox state
+    const config = getConfig();
+    updateRequestUrl(config);
   }
 }
 
 function getConfig() {
-    const config = {
-        base_url: document.getElementById('baseUrl').value,
-        model: document.getElementById('model').value,
-        utterance_end_ms: document.getElementById('utterance_end_ms').value,
-        endpointing: document.getElementById('endpointing').value,
-        smart_format: document.getElementById('smart_format').checked,
-        interim_results: document.getElementById('interim_results').checked,
-        no_delay: document.getElementById('no_delay').checked,
-        dictation: document.getElementById('dictation').checked,
-        numerals: document.getElementById('numerals').checked,
-        profanity_filter: document.getElementById('profanity_filter').checked,
-        redact: document.getElementById('redact').checked,
-        extra: JSON.parse(document.getElementById('extraParams').value || '{}')
+    const config = {};
+    
+    const addIfSet = (id) => {
+        const element = document.getElementById(id);
+        const value = element.type === 'checkbox' ? element.checked : element.value;
+        if (value !== '' && value !== false) {
+            config[id] = value;
+        }
     };
 
-    // Only add language if it has a value
-    const language = document.getElementById('language').value;
-    if (language && language !== 'undefined') {
-        config.language = language;
+    addIfSet('baseUrl');
+    addIfSet('language');
+    addIfSet('model');
+    addIfSet('utterance_end_ms');
+    addIfSet('endpointing');
+    addIfSet('smart_format');
+    addIfSet('interim_results');
+    addIfSet('no_delay');
+    addIfSet('dictation');
+    addIfSet('numerals');
+    addIfSet('profanity_filter');
+    addIfSet('redact');
+
+    // Add extra parameters
+    const extraParams = document.getElementById('extraParams');
+    if (extraParams && extraParams.value) {
+        try {
+            const extra = JSON.parse(extraParams.value);
+            Object.entries(extra).forEach(([key, value]) => {
+                if (value !== undefined && value !== '') {
+                    config[key] = value;
+                }
+            });
+        } catch (e) {
+            console.error('Error parsing extra parameters:', e);
+        }
     }
 
     return config;
@@ -292,86 +315,62 @@ function toggleConfig() {
     content.classList.toggle('collapsed');
 }
 
-function updateRequestUrl(config, forceShowAll = false) {
+function updateRequestUrl() {
     const urlElement = document.getElementById('requestUrl');
-    const urlText = urlElement.textContent;
-    const currentBaseUrl = urlText.split('?')[0];
-    const newBaseUrl = `ws://${document.getElementById('baseUrl').value}/v1/listen`;
-    const hasBaseUrlChanged = currentBaseUrl !== newBaseUrl;
-    
-    const baseUrlDisplay = hasBaseUrlChanged ? 
-        `<span class="highlight-change">${newBaseUrl}</span>` : 
-        newBaseUrl;
-    
+
+    const baseUrl = document.getElementById('baseUrl').value;
     const params = new URLSearchParams();
     
-    // Get previous params for highlighting changes
-    const paramsText = urlText.split('?')[1] || '';
-    const prevParams = new URLSearchParams(
-        paramsText
-            .replace(/\n/g, '')
-            .replace(/&$/, '')
-    );
+    // Only add parameters that are explicitly set
+    const language = document.getElementById('language').value;
+    if (language) params.append('language', language);
     
-    // Store line break positions only if not forcing all params
-    const lineStartParams = new Set();
-    if (!forceShowAll) {
-        const existingLines = urlText.split('\n');
-        if (existingLines.length > 1) {
-            for (let i = 1; i < existingLines.length; i++) {
-                const lineParams = existingLines[i].split('&');
-                if (lineParams[0]) {
-                    const paramName = lineParams[0].split('=')[0];
-                    lineStartParams.add(paramName);
-                }
-            }
-        }
-    }
+    const model = document.getElementById('model').value;
+    if (model) params.append('model', model);
     
-    // Map snake_case params to camelCase config keys
-    const paramMapping = {
-        'model': 'model',
-        'language': 'language',
-        'utterance_end_ms': 'utterance_end_ms',
-        'endpointing': 'endpointing',
-        'smart_format': 'smart_format',
-        'interim_results': 'interim_results',
-        'no_delay': 'no_delay',
-        'dictation': 'dictation',
-        'numerals': 'numerals',
-        'profanity_filter': 'profanity_filter',
-        'redact': 'redact'
-    };
+    const utteranceEndMs = document.getElementById('utterance_end_ms').value;
+    if (utteranceEndMs) params.append('utterance_end_ms', utteranceEndMs);
     
-    // Add parameters
-    Object.entries(paramMapping).forEach(([paramName, configKey]) => {
-        const hasBeenChanged = changedParams.has(configKey);
-        const isDifferentFromDefault = config[configKey] !== DEFAULT_CONFIG[configKey];
-        const value = config[configKey];
-        // Skip empty or undefined values, except for interim_results
-        if (value === undefined || value === '' || value === 'undefined') {
-            return;
-        }
-        // Always include interim_results, otherwise use normal logic
-        if (paramName === 'interim_results' || forceShowAll || isImported || hasBeenChanged || isDifferentFromDefault) {
-            params.append(paramName, value);
-        }
-    });
+    const endpointing = document.getElementById('endpointing').value;
+    if (endpointing) params.append('endpointing', endpointing);
+    
+    const smartFormat = document.getElementById('smart_format').checked;
+    if (smartFormat) params.append('smart_format', 'true');
+    
+    const interimResults = document.getElementById('interim_results').checked;
+    if (interimResults) params.append('interim_results', 'true');
+    
+    const noDelay = document.getElementById('no_delay').checked;
+    if (noDelay) params.append('no_delay', 'true');
+    
+    const dictation = document.getElementById('dictation').checked;
+    if (dictation) params.append('dictation', 'true');
+    
+    const numerals = document.getElementById('numerals').checked;
+    if (numerals) params.append('numerals', 'true');
+    
+    const profanityFilter = document.getElementById('profanity_filter').checked;
+    if (profanityFilter) params.append('profanity_filter', 'true');
+    
+    const redact = document.getElementById('redact').checked;
+    if (redact) params.append('redact', 'true');
     
     // Add extra parameters if any
-    const extra = config.extra;
-    if (Object.keys(extra).length > 0) {
-        for (const [key, value] of Object.entries(extra)) {
-            if (Array.isArray(value)) {
-                // If value is an array, add each value as a separate parameter
-                value.forEach(v => params.append(key, v));
-            } else if (typeof value === 'object' && value !== null) {
-                // If value is an object, stringify it
-                params.append(key, JSON.stringify(value));
-            } else {
-                // For primitive values, add directly
-                params.append(key, value);
-            }
+    const extraParams = document.getElementById('extraParams');
+    if (extraParams && extraParams.value) {
+        try {
+            const extra = JSON.parse(extraParams.value);
+            Object.entries(extra).forEach(([key, value]) => {
+                if (value !== undefined && value !== '') {
+                    if (Array.isArray(value)) {
+                        value.forEach(v => params.append(key, v));
+                    } else {
+                        params.append(key, value);
+                    }
+                }
+            });
+        } catch (e) {
+            console.error('Invalid extra parameters JSON:', e);
         }
     }
     
@@ -382,26 +381,20 @@ function updateRequestUrl(config, forceShowAll = false) {
     const maxLineLength = Math.floor((containerWidth - safetyMargin) / avgCharWidth);
     
     // Format URL with line breaks
+    const baseUrlDisplay = isRecording ? `ws://${baseUrl}/v1/listen?` : `http://${baseUrl}/v1/listen?`;
     const pairs = params.toString().split('&');
-    let currentLine = baseUrlDisplay + '?';
+    let currentLine = baseUrlDisplay;
     const outputLines = [];
     
     pairs.forEach((pair, index) => {
-        const [key, value] = pair.split('=');
-        const prevValue = prevParams.get(key);
-        const hasChanged = prevValue !== null && prevValue !== value;
-        const formattedPair = hasChanged ? `<span class="highlight-change">${pair}</span>` : pair;
-        
-        // Use simpler line wrapping for imports
-        const shouldBreakLine = currentLine !== baseUrlDisplay + '?' && 
-            ((!forceShowAll && lineStartParams.has(key)) || 
-             (currentLine.length + pair.length + 1 > maxLineLength));
+        const shouldBreakLine = currentLine !== baseUrlDisplay && 
+            (currentLine.length + pair.length + 1 > maxLineLength);
         
         if (shouldBreakLine) {
-            outputLines.push(currentLine + '&');
-            currentLine = formattedPair;
+            outputLines.push(currentLine + '&amp;');
+            currentLine = pair;
         } else {
-            currentLine += (currentLine === baseUrlDisplay + '?' ? '' : '&') + formattedPair;
+            currentLine += (currentLine === baseUrlDisplay ? '' : '&amp;') + pair;
         }
         
         if (index === pairs.length - 1) {
@@ -410,6 +403,7 @@ function updateRequestUrl(config, forceShowAll = false) {
     });
     
     urlElement.innerHTML = outputLines.join('\n');
+    return outputLines.join('').replace(/&amp;/g, '&');
 }
 
 function toggleExtraParams() {
@@ -438,35 +432,17 @@ function parseUrlParams(url) {
         // Extract the hostname as baseUrl, removing /v1/listen if present
         params.baseUrl = urlObj.hostname;
         
-        // Clean up the search params (remove whitespace and empty parameters)
-        const paramMap = new Map(); // Use Map to handle array parameters
+        // Handle duplicate parameters as arrays
+        const paramMap = new Map();
         urlObj.searchParams.forEach((value, key) => {
             const cleanKey = key.trim();
             const cleanValue = value.trim();
             if (cleanKey && cleanValue) {
-                // Convert string booleans to actual booleans
-                if (cleanValue.toLowerCase() === 'true') {
-                    if (paramMap.has(cleanKey)) {
-                        // If key exists, convert to array
-                        const existingValue = paramMap.get(cleanKey);
-                        paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, true] : [existingValue, true]);
-                    } else {
-                        paramMap.set(cleanKey, true);
-                    }
-                } else if (cleanValue.toLowerCase() === 'false') {
-                    if (paramMap.has(cleanKey)) {
-                        const existingValue = paramMap.get(cleanKey);
-                        paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, false] : [existingValue, false]);
-                    } else {
-                        paramMap.set(cleanKey, false);
-                    }
+                if (paramMap.has(cleanKey)) {
+                    const existingValue = paramMap.get(cleanKey);
+                    paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, cleanValue] : [existingValue, cleanValue]);
                 } else {
-                    if (paramMap.has(cleanKey)) {
-                        const existingValue = paramMap.get(cleanKey);
-                        paramMap.set(cleanKey, Array.isArray(existingValue) ? [...existingValue, cleanValue] : [existingValue, cleanValue]);
-                    } else {
-                        paramMap.set(cleanKey, cleanValue);
-                    }
+                    paramMap.set(cleanKey, cleanValue);
                 }
             }
         });
@@ -549,7 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     
     // Add event listener for extra params
-    document.getElementById('extraParams').addEventListener('input', () => {
+    document.getElementById('extraParams').addEventListener('blur', () => {
         try {
             const extraParams = document.getElementById('extraParams');
             const rawJson = extraParams.value || '{}';
@@ -579,7 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
             } else {
                 changedParams.delete('extraParams');
             }
-            updateRequestUrl(getConfig());
+            updateRequestUrl();
         } catch (e) {
             console.warn('Invalid JSON in extra params');
         }
@@ -651,7 +627,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const element = document.getElementById(key);
                 if (element) {
                     if (element.type === 'checkbox') {
-                        element.checked = value;
+                        element.checked = value === 'true' || value === true;
                     } else {
                         element.value = value;
                     }
@@ -668,12 +644,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             document.getElementById('extraParams').value = JSON.stringify(extraParams, null, 2);
             
-            // Update URL display without resetting to defaults
-            const urlElement = document.getElementById('requestUrl');
-            urlElement.innerHTML = url;
+            // Update URL display with proper wrapping and escaping
+            updateRequestUrl();
             
             // Restore cursor position
             try {
+                const urlElement = document.getElementById('requestUrl');
                 const newRange = document.createRange();
                 newRange.setStart(urlElement.firstChild || urlElement, Math.min(cursorOffset, (urlElement.firstChild || urlElement).length));
                 newRange.collapse(true);
@@ -684,4 +660,135 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
+
+    // File upload handling
+    const uploadButton = document.getElementById('uploadButton');
+    const audioFile = document.getElementById('audioFile');
+    const dropZone = document.getElementById('dropZone');
+    
+    // Debug: Log when elements are found
+    console.log('Upload button found:', !!uploadButton);
+    console.log('Audio file input found:', !!audioFile);
+    console.log('Drop zone found:', !!dropZone);
+    
+    uploadButton.addEventListener('click', () => {
+        console.log('Upload button clicked');
+        audioFile.click();
+    });
+    
+    // Drag and drop handling
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length === 0) {
+            console.log('No files dropped');
+            return;
+        }
+        
+        const file = e.dataTransfer.files[0];
+        console.log(`Dropped file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+        
+        processFile(file);
+    });
+    
+    // Click on drop zone to trigger file input
+    dropZone.addEventListener('click', () => {
+        audioFile.click();
+    });
+    
+    // File input change handler
+    audioFile.addEventListener('change', (e) => {
+        if (e.target.files.length === 0) {
+            console.log('No file selected');
+            return;
+        }
+        
+        const file = e.target.files[0];
+        console.log(`Selected file: ${file.name}, type: ${file.type}, size: ${file.size} bytes`);
+        
+        processFile(file);
+    });
+    
+    // Function to process a file
+    function processFile(file) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          console.log(`File loaded, data length: ${e.target.result.length}`);
+          const fileData = {
+            name: file.name,
+            data: e.target.result
+          };
+          
+          // Get parameters from URL
+          const urlElement = document.getElementById('requestUrl');
+          const urlText = urlElement.textContent;
+          const params = {};
+          
+          // Parse URL parameters
+          const url = new URL(urlText.replace('ws://', 'http://'));
+          // Only include parameters that are explicitly in the URL
+          for (const [key, value] of url.searchParams) {
+            params[key] = value;
+          }
+          
+          console.log(`Sending file upload request with params:`, params);
+          
+          socket.emit('upload_file', { 
+            file: fileData,
+            config: params
+          }, (result) => {
+            console.log(`Received response:`, result);
+            if (result.error) {
+              console.error('Upload error:', result.error);
+              return;
+            }
+            
+            // Display transcription
+            const transcript = result.results?.channels[0]?.alternatives[0]?.transcript;
+            if (transcript) {
+              const finalCaptions = document.getElementById('finalCaptions');
+              const finalDiv = document.createElement('span');
+              finalDiv.textContent = transcript + ' ';
+              finalDiv.className = 'final';
+              finalCaptions.appendChild(finalDiv);
+              finalDiv.scrollIntoView({ behavior: 'smooth' });
+            }
+          });
+        };
+        
+        reader.onerror = function(e) {
+          console.error('Error reading file:', e);
+        };
+        
+        reader.onprogress = function(e) {
+          if (e.lengthComputable) {
+            console.log(`Reading file: ${Math.round((e.loaded / e.total) * 100)}%`);
+          }
+        };
+        
+        console.log('Starting to read file...');
+        reader.readAsDataURL(file);
+    }
+
+    // Add event listener for interim_results checkbox
+    const interimResultsCheckbox = document.getElementById('interim_results');
+    if (interimResultsCheckbox) {
+        interimResultsCheckbox.addEventListener('change', function() {
+            // Only update URL if not recording
+            if (!isRecording) {
+                updateRequestUrl(getConfig());
+            }
+        });
+    }
 });

@@ -1,7 +1,7 @@
 import logging
 import os
 import json
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from dotenv import load_dotenv
 from deepgram import (
@@ -10,6 +10,8 @@ from deepgram import (
     LiveOptions,
     DeepgramClientOptions,
 )
+from common.batch_audio import process_audio
+import base64
 
 load_dotenv()
 
@@ -47,9 +49,13 @@ dg_connection = None
 def initialize_deepgram_connection(config_options=None):
     global dg_connection, deepgram, config
 
+    if not config_options:
+        print("No configuration options provided")
+        return
+
     # Update client config with base URL and create new client
-    if config_options and "base_url" in config_options:
-        base_url = config_options.pop("base_url")
+    if "baseUrl" in config_options:
+        base_url = config_options.pop("baseUrl")
         config.url = f"wss://{base_url}"  # Use wss:// for secure WebSocket
         deepgram = DeepgramClient(API_KEY, config)
 
@@ -59,6 +65,7 @@ def initialize_deepgram_connection(config_options=None):
 
     dg_connection = deepgram.listen.websocket.v("1")  # Use websocket instead of live
 
+    # Event handlers remain the same
     def on_open(self, open, **kwargs):
         print(f"\n\n{open}\n\n")
 
@@ -86,15 +93,9 @@ def initialize_deepgram_connection(config_options=None):
     dg_connection.on(LiveTranscriptionEvents.Transcript, on_message)
     dg_connection.on(LiveTranscriptionEvents.Close, on_close)
     dg_connection.on(LiveTranscriptionEvents.Error, on_error)
-
-    # Use default config and update with any provided options
-    default_options = DEFAULT_CONFIG.copy()
-    if config_options:
-        default_options.update(config_options)
-
-    # Remove base_url as it's not a valid LiveOptions parameter
-    default_options.pop("base_url", None)
-    options = LiveOptions(**default_options)
+    
+    options = LiveOptions(**config_options)
+    print(f"Starting Deepgram connection with options: {options}")
 
     if dg_connection.start(options) is False:
         print("Failed to start connection")
@@ -115,9 +116,6 @@ def handle_toggle_transcription(data):
     if action == "start":
         print("Starting Deepgram connection")
         config = data.get("config", {})
-        # Get base URL from client
-        base_url = config.pop("base_url", "api.deepgram.com")
-        config["base_url"] = base_url
         initialize_deepgram_connection(config)
     elif action == "stop" and dg_connection:
         print("Closing Deepgram connection")
@@ -134,6 +132,58 @@ def server_connect():
 def restart_deepgram():
     print("Restarting Deepgram connection")
     initialize_deepgram_connection()
+
+
+@socketio.on("upload_file")
+def handle_file_upload(data):
+    if "file" not in data:
+        print("Error: No file provided in data")
+        return {"error": "No file provided"}, 400
+
+    file = data["file"]
+    if not file:
+        print("Error: Empty file object")
+        return {"error": "No file selected"}, 400
+
+    print(f"Received file: {file['name']}")
+    print(f"File data length: {len(file['data'])}")
+
+    # Save file temporarily
+    temp_dir = "temp"
+    os.makedirs(temp_dir, exist_ok=True)
+    file_path = os.path.join(temp_dir, file["name"])
+    print(f"Will save to: {file_path}")
+
+    # Save the file
+    try:
+        file_data = base64.b64decode(file["data"].split(",")[1])
+        print(f"Decoded file size: {len(file_data)} bytes")
+        with open(file_path, "wb") as f:
+            f.write(file_data)
+        print(f"File saved successfully to {file_path}")
+    except Exception as e:
+        print(f"Error saving file: {str(e)}")
+        return {"error": f"Error saving file: {str(e)}"}, 500
+
+    try:
+        # Use the config parameters from the client
+        params = data.get("config", {})
+        # Remove base_url as it's not needed for file processing
+        params.pop("baseUrl", None)
+        print(f"Processing audio with params: {params}")
+        result = process_audio(file_path, params)
+        print(f"Processing result: {result}")
+
+        # Clean up
+        os.remove(file_path)
+        print(f"Temporary file removed: {file_path}")
+        return result
+    except Exception as e:
+        print(f"Error processing audio: {str(e)}")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Temporary file removed after error: {file_path}")
+        return {"error": str(e)}, 500
 
 
 if __name__ == "__main__":
