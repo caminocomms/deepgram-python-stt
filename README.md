@@ -1,5 +1,4 @@
-![image](https://github.com/user-attachments/assets/67fea267-6540-4092-92cb-e2e5f81e6253)
-
+![image](https://github.com/user-attachments/assets/4a244f31-a6dd-4fc5-a08d-c78aa37c8635)
 
 # Flask Live Transcription Starter
 
