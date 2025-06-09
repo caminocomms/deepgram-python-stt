@@ -1,3 +1,6 @@
+![image](https://github.com/user-attachments/assets/67fea267-6540-4092-92cb-e2e5f81e6253)
+
+
 # Flask Live Transcription Starter
 
 Get started using Deepgram's Live Transcription with this Flask demo app.
