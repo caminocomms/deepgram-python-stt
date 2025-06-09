@@ -61,6 +61,15 @@
                   <i class="fas fa-file-import"></i> Import
                 </button>
               </div>
+              <div class="detect-settings-section">
+                <button type="button" id="detectSettingsButton" class="detect-settings-button">
+                  <i class="fas fa-microphone-alt"></i> Detect Audio Settings
+                </button>
+                <div id="audioSettingsDisplay" class="audio-settings-display" style="display: none;">
+                  <h4>Audio Settings</h4>
+                  <div id="audioSettingsContent"></div>
+                </div>
+              </div>
               <div class="config-columns">
                 <div class="config-group text-inputs">
                   <label>Base URL:
@@ -73,21 +82,30 @@
                     <input type="text" id="language" value="en" placeholder="en">
                   </label>
                   <label>Utterance End (ms):
-                    <input type="text" id="utterance_end_ms" value="1000" placeholder="1000">
+                    <input type="text" id="utterance_end_ms" placeholder="1000">
                   </label>
                   <label>Endpointing:
-                    <input type="text" id="endpointing" value="10" placeholder="10">
+                    <input type="text" id="endpointing" placeholder="10">
+                  </label>
+                  <label>Encoding:
+                    <input type="text" id="encoding" placeholder="">
+                  </label>
+                  <label>Channels:
+                    <input type="number" id="channels" placeholder="1">
+                  </label>
+                  <label>Sample Rate:
+                    <input type="number" id="sample_rate" placeholder="16000">
                   </label>
                 </div>
                 <div class="config-group boolean-inputs">
                   <label>
-                    <input type="checkbox" id="smart_format" checked> Smart Format
-                  </label>
-                  <label>
                     <input type="checkbox" id="interim_results" checked> Interim Results
                   </label>
                   <label>
-                    <input type="checkbox" id="no_delay" checked> No Delay
+                    <input type="checkbox" id="smart_format" checked> Smart Format
+                  </label>
+                  <label>
+                    <input type="checkbox" id="no_delay"> No Delay
                   </label>
                   <label>
                     <input type="checkbox" id="dictation"> Dictation
@@ -96,10 +114,16 @@
                     <input type="checkbox" id="numerals"> Numerals
                   </label>
                   <label>
-                    <input type="checkbox" id="profanity_filter" checked> Profanity Filter
+                    <input type="checkbox" id="profanity_filter"> Profanity Filter
                   </label>
                   <label>
                     <input type="checkbox" id="redact"> Redact
+                  </label>
+                  <label>
+                    <input type="checkbox" id="punctuate"> Punctuate
+                  </label>
+                  <label>
+                    <input type="checkbox" id="vad_events"> VAD Events
                   </label>
                 </div>
               </div>

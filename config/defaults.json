@@ -11,5 +11,10 @@
     "numerals": false,
     "profanity_filter": false,
     "redact": false,
+    "punctuate": false,
+    "encoding": "",
+    "channels": 1,
+    "sample_rate": 16000,
+    "vad_events": true,
     "extra": {}
 } 

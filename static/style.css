@@ -590,3 +590,70 @@ h1 {
   background-color: rgba(76, 175, 80, 0.2);
   border-color: #45a049;
 }
+
+/* Audio Settings Styles */
+.detect-settings-section {
+  margin-bottom: 20px;
+}
+
+.detect-settings-button {
+  padding: 8px 16px;
+  background: #47aca9;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.detect-settings-button:hover {
+  background: #3d918e;
+}
+
+.detect-settings-button i {
+  font-size: 14px;
+}
+
+.audio-settings-display {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+.audio-settings-display h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #47aca9;
+  font-size: 16px;
+}
+
+.settings-item {
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.settings-item strong {
+  color: #47aca9;
+  margin-right: 5px;
+}
+
+.loading {
+  color: #47aca9;
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+}
+
+.error {
+  color: #ef4444;
+  font-style: italic;
+  text-align: center;
+  padding: 10px;
+}

@@ -21,6 +21,11 @@ let DEFAULT_CONFIG = {
     "numerals": false,
     "profanity_filter": false,
     "redact": false,
+    "punctuate": false,
+    "encoding": "",
+    "channels": 1,
+    "sample_rate": 16000,
+    "vad_events": true,
     "extra": {}
 };
 
@@ -47,16 +52,24 @@ function setDefaultValues() {
     if (!DEFAULT_CONFIG) return;
     
     // Set text input defaults
-    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing'].forEach(id => {
+    ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing', 'encoding'].forEach(id => {
         const element = document.getElementById(id);
         if (element && DEFAULT_CONFIG[id]) {
             element.value = DEFAULT_CONFIG[id];
         }
     });
 
+    // Set numeric input defaults
+    ['channels', 'sample_rate'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element && DEFAULT_CONFIG[id] !== undefined) {
+            element.value = DEFAULT_CONFIG[id];
+        }
+    });
+
     // Set checkbox defaults
     ['smart_format', 'interim_results', 'no_delay', 'dictation', 
-     'numerals', 'profanity_filter', 'redact'].forEach(id => {
+     'numerals', 'profanity_filter', 'redact', 'punctuate', 'vad_events'].forEach(id => {
         const element = document.getElementById(id);
         if (element && DEFAULT_CONFIG[id] !== undefined) {
             element.checked = DEFAULT_CONFIG[id];
@@ -289,6 +302,11 @@ function getConfig() {
     addIfSet('numerals');
     addIfSet('profanity_filter');
     addIfSet('redact');
+    addIfSet('punctuate');
+    addIfSet('encoding');
+    addIfSet('channels');
+    addIfSet('sample_rate');
+    addIfSet('vad_events');
 
     // Add extra parameters
     const extraParams = document.getElementById('extraParams');
@@ -334,6 +352,15 @@ function updateRequestUrl() {
     const endpointing = document.getElementById('endpointing').value;
     if (endpointing) params.append('endpointing', endpointing);
     
+    const encoding = document.getElementById('encoding').value;
+    if (encoding) params.append('encoding', encoding);
+    
+    const channels = document.getElementById('channels').value;
+    if (channels) params.append('channels', channels);
+    
+    const sampleRate = document.getElementById('sample_rate').value;
+    if (sampleRate) params.append('sample_rate', sampleRate);
+    
     const smartFormat = document.getElementById('smart_format').checked;
     if (smartFormat) params.append('smart_format', 'true');
     
@@ -354,6 +381,12 @@ function updateRequestUrl() {
     
     const redact = document.getElementById('redact').checked;
     if (redact) params.append('redact', 'true');
+    
+    const punctuate = document.getElementById('punctuate').checked;
+    if (punctuate) params.append('punctuate', 'true');
+    
+    const vadEvents = document.getElementById('vad_events').checked;
+    if (vadEvents) params.append('vad_events', 'true');
     
     // Add extra parameters if any
     const extraParams = document.getElementById('extraParams');
@@ -789,6 +822,87 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!isRecording) {
                 updateRequestUrl(getConfig());
             }
+        });
+    }
+    
+    // Handle detect audio settings button
+    const detectSettingsButton = document.getElementById('detectSettingsButton');
+    const audioSettingsDisplay = document.getElementById('audioSettingsDisplay');
+    const audioSettingsContent = document.getElementById('audioSettingsContent');
+    
+    if (detectSettingsButton && audioSettingsDisplay && audioSettingsContent) {
+        // Listen for audio settings from server
+        socket.on('audio_settings', function(settings) {
+            console.log('Received audio settings:', settings);
+            
+            // Show the settings display
+            audioSettingsDisplay.style.display = 'block';
+            
+            // Clear previous content
+            audioSettingsContent.innerHTML = '';
+            
+            if (settings.error) {
+                audioSettingsContent.innerHTML = `<div class="error">${settings.error}</div>`;
+                return;
+            }
+            
+            // Create HTML for settings
+            const settingsHTML = `
+                <div class="settings-item">
+                    <strong>Device:</strong> ${settings.device_name || 'Unknown'}
+                </div>
+                <div class="settings-item">
+                    <strong>Sample Rate:</strong> ${settings.sample_rate ? settings.sample_rate.toFixed(0) + ' Hz' : 'Unknown'}
+                </div>
+                <div class="settings-item">
+                    <strong>Encoding:</strong> ${settings.dtype || 'Unknown'}
+                </div>
+                <div class="settings-item">
+                    <strong>Bit Depth:</strong> ${settings.bit_depth ? settings.bit_depth + ' bits' : 'Unknown'}
+                </div>
+                <div class="settings-item">
+                    <strong>Bitrate:</strong> ${settings.bitrate ? (settings.bitrate / 1000).toFixed(1) + ' kbps' : 'Unknown'}
+                </div>
+                <div class="settings-item">
+                    <strong>Channels:</strong> ${settings.max_input_channels || 'Unknown'}
+                </div>
+            `;
+            
+            audioSettingsContent.innerHTML = settingsHTML;
+            
+            // Auto-populate form fields if they exist
+            if (settings.sample_rate) {
+                const sampleRateInput = document.getElementById('sample_rate');
+                if (sampleRateInput) {
+                    sampleRateInput.value = Math.round(settings.sample_rate);
+                }
+            }
+            
+            if (settings.dtype) {
+                const encodingInput = document.getElementById('encoding');
+                if (encodingInput) {
+                    // Map numpy dtype to encoding format
+                    let encoding = '';
+                    if (settings.dtype.includes('float')) {
+                        encoding = 'LINEAR32F';
+                    } else if (settings.dtype.includes('int16')) {
+                        encoding = 'LINEAR16';
+                    } else if (settings.dtype.includes('int32')) {
+                        encoding = 'LINEAR32';
+                    }
+                    encodingInput.value = encoding;
+                }
+            }
+        });
+        
+        // Handle detect settings button click
+        detectSettingsButton.addEventListener('click', function() {
+            console.log('Detecting audio settings...');
+            socket.emit('detect_audio_settings');
+            
+            // Show loading state
+            audioSettingsDisplay.style.display = 'block';
+            audioSettingsContent.innerHTML = '<div class="loading">Detecting audio settings...</div>';
         });
     }
 });
