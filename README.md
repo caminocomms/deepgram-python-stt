@@ -18,7 +18,7 @@ Follow these steps to get started with this starter application.
 
 #### Clone the repository
 
-Go to GitHub and [clone the repository](https://github.com/deepgram-starters/prerecorded-node-starter).
+Go to GitHub and [clone the repository](https://github.com/Jacob-Lasky/deepgram-python-stt).
 
 #### Install dependencies
 
@@ -26,6 +26,11 @@ Install the project dependencies.
 
 ```bash
 pip install -r requirements.txt
+```
+or with poetry,
+
+```bash
+poetry install
 ```
 
 #### Edit the config file
@@ -38,25 +43,15 @@ DEEPGRAM_API_KEY=%api_key%
 
 #### Run the application
 
-You need to run both app.py (port 8000) and app_socketio.py (port 5001). Once running, you can access the application in your browser at <http://127.0.0.1:8000>
+You need to run the app.py (port 8001) to in your browser and access it at <http://127.0.0.1:8001>
 
 ```bash
 python app.py
-python app_socketio.py
 ```
-
-## Testing
-
-To contribute or modify pytest code, install the following dependencies:
+or if using poetry,
 
 ```bash
-pip install -r requirements-dev.txt
-```
-
-To run the tests, run the following command:
-
-```bash
-pytest -v -s
+poetry run python app.py
 ```
 
 ## Issue Reporting
@@ -67,7 +62,7 @@ If you have found a bug or if you have a feature request, please report them at 
 
 We love to hear from you so if you have questions, comments or find a bug in the project, let us know! You can either:
 
-- [Open an issue in this repository](https://github.com/deepgram-starters/live-flask-starter/issues/new)
+- [Open an issue in this repository](https://github.com/Jacob-Lasky/deepgram-python-stt/issues/new)
 - [Join the Deepgram Github Discussions Community](https://github.com/orgs/deepgram/discussions)
 - [Join the Deepgram Discord Community](https://discord.gg/xWRaCDBtW4)
 
