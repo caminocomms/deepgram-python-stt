@@ -4,7 +4,7 @@
     "language": "en",
     "utterance_end_ms": "1000",
     "endpointing": "10",
-    "smart_format": false,
+    "smart_format": true,
     "interim_results": true,
     "no_delay": true,
     "dictation": false,
@@ -15,6 +15,6 @@
     "encoding": "",
     "channels": 1,
     "sample_rate": 16000,
-    "vad_events": true,
+    "vad_events": false,
     "extra": {}
 } 

@@ -35,17 +35,16 @@ socket = io(
 );
 
 // Fetch default configuration
-fetch('../config/defaults.json')
+const loadDefaults = fetch('../config/defaults.json')
   .then(response => response.json())
   .then(config => {
     DEFAULT_CONFIG = config;
-    // Initialize URL with current config
-    updateRequestUrl(getConfig());
+    console.log('Loaded default configuration:', DEFAULT_CONFIG);
+    return config;
   })
   .catch(error => {
     console.error('Error loading default configuration:', error);
-    // Initialize URL with current config
-    updateRequestUrl(getConfig());
+    return null;
   });
 
 function setDefaultValues() {
@@ -594,19 +593,21 @@ document.addEventListener("DOMContentLoaded", () => {
     urlElement.contentEditable = true;
     urlElement.style.cursor = 'text';
     
-    // Auto-start recording when page loads
-    setTimeout(async () => {
-        if (!isRecording) {
-            recordButton.checked = true;
-            try {
-                await startRecording();
-                logDebug('Auto-started recording on page load');
-            } catch (error) {
-                console.error("Failed to auto-start recording:", error);
-                recordButton.checked = false;
+    // Auto-start recording when page loads (wait for defaults first)
+    loadDefaults.then(() => {
+        setTimeout(async () => {
+            if (!isRecording) {
+                recordButton.checked = true;
+                try {
+                    await startRecording();
+                    logDebug('Auto-started recording on page load');
+                } catch (error) {
+                    console.error("Failed to auto-start recording:", error);
+                    recordButton.checked = false;
+                }
             }
-        }
-    }, 1000); // 1 second delay to ensure everything is loaded
+        }, 1000); // 1 second delay to ensure everything is loaded
+    });
     
     // Reset button functionality
     if (resetButton) {
@@ -686,11 +687,16 @@ document.addEventListener("DOMContentLoaded", () => {
         updateRequestUrl(getConfig());
     });
 
-    // Set default values when page loads
-    setDefaultValues();
-    
-    // Initialize URL with current config instead of defaults
-    updateRequestUrl(getConfig());
+    // Wait for defaults to load before setting values
+    loadDefaults.then(() => {
+        // Set default values when page loads
+        setDefaultValues();
+        
+        // Initialize URL with current config instead of defaults
+        updateRequestUrl(getConfig());
+        
+        console.log('Default values applied');
+    });
 
     recordButton.addEventListener("change", async () => {
         if (recordButton.checked) {
