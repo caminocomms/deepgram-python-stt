@@ -1,5 +1,3 @@
-![image](https://github.com/user-attachments/assets/4a244f31-a6dd-4fc5-a08d-c78aa37c8635)
-
 # Flask Live Transcription Starter
 
 Get started using Deepgram's Live Transcription with this Flask demo app.
@@ -24,15 +22,14 @@ Go to GitHub and [clone the repository](https://github.com/Jacob-Lasky/deepgram-
 
 #### Install dependencies
 
-Install the project dependencies.
+**For Windows Users:**
+First ensure you have Python installed. If not, download it from [python.org](https://www.python.org/downloads/windows/) and follow the installation instructions.
+
+**For all platforms:**
+Install the project dependencies:
 
 ```bash
 pip install -r requirements.txt
-```
-or with poetry,
-
-```bash
-poetry install
 ```
 
 #### Edit the config file
@@ -45,16 +42,17 @@ DEEPGRAM_API_KEY=%api_key%
 
 #### Run the application
 
-You need to run the app.py (port 8001) to in your browser and access it at <http://127.0.0.1:8001>
+**For Windows:**
+```cmd
+python app.py
+```
 
+**For Linux/macOS:**
 ```bash
 python app.py
 ```
-or if using poetry,
 
-```bash
-poetry run python app.py
-```
+The application will start on port 8001. Open your browser and navigate to <http://127.0.0.1:8001> to access the live transcription interface.
 
 ## Issue Reporting
 
