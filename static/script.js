@@ -587,7 +587,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const copyButton = document.getElementById('copyUrl');
     const resetButton = document.getElementById('resetButton');
     const simplifyButton = document.getElementById('simplifyButton');
-    const clearButton = document.getElementById('clearButton');
     
     
     // Make URL editable
@@ -595,14 +594,19 @@ document.addEventListener("DOMContentLoaded", () => {
     urlElement.contentEditable = true;
     urlElement.style.cursor = 'text';
     
-    // Clear button functionality
-    if (clearButton) {
-        clearButton.addEventListener('click', () => {
-            document.getElementById('captions').innerHTML = '';
-            document.getElementById('finalCaptions').innerHTML = '';
-            logDebug('Cleared all transcription results');
-        });
-    }
+    // Auto-start recording when page loads
+    setTimeout(async () => {
+        if (!isRecording) {
+            recordButton.checked = true;
+            try {
+                await startRecording();
+                logDebug('Auto-started recording on page load');
+            } catch (error) {
+                console.error("Failed to auto-start recording:", error);
+                recordButton.checked = false;
+            }
+        }
+    }, 1000); // 1 second delay to ensure everything is loaded
     
     // Reset button functionality
     if (resetButton) {
