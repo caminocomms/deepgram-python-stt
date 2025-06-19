@@ -16,12 +16,12 @@ let DEFAULT_CONFIG = {
     "endpointing": "10",
     "smart_format": false,
     "interim_results": true,
-    "no_delay": false,
+    "no_delay": true,
     "dictation": false,
-    "numerals": false,
+    "numerals": true,
     "profanity_filter": false,
     "redact": false,
-    "punctuate": false,
+    "punctuate": true,
     "encoding": "",
     "channels": 1,
     "sample_rate": 16000,
@@ -54,7 +54,7 @@ function setDefaultValues() {
     // Set text input defaults
     ['baseUrl', 'model', 'language', 'utterance_end_ms', 'endpointing', 'encoding'].forEach(id => {
         const element = document.getElementById(id);
-        if (element && DEFAULT_CONFIG[id]) {
+        if (element && DEFAULT_CONFIG[id] !== undefined) {
             element.value = DEFAULT_CONFIG[id];
         }
     });
@@ -71,13 +71,16 @@ function setDefaultValues() {
     ['smart_format', 'interim_results', 'no_delay', 'dictation', 
      'numerals', 'profanity_filter', 'redact', 'punctuate', 'vad_events'].forEach(id => {
         const element = document.getElementById(id);
-        if (element && DEFAULT_CONFIG[id] !== undefined) {
-            element.checked = DEFAULT_CONFIG[id];
+        if (element) {
+            element.checked = DEFAULT_CONFIG[id] === true;
         }
     });
 
     // Set extra params default
-    document.getElementById('extraParams').value = JSON.stringify(DEFAULT_CONFIG.extra || {}, null, 2);
+    const extraParamsElement = document.getElementById('extraParams');
+    if (extraParamsElement) {
+        extraParamsElement.value = JSON.stringify(DEFAULT_CONFIG.extra || {}, null, 2);
+    }
 }
 
 function resetConfig() {
@@ -159,6 +162,8 @@ socket.on("transcription_update", (data) => {
   const interimCaptions = document.getElementById("captions");
   const finalCaptions = document.getElementById("finalCaptions");
   
+  logDebug(`Transcription received: ${data.is_final ? 'final' : 'interim'} - "${data.transcription}"`);
+  
   let timeString = "";
   if (data.timing) {
     const start = data.timing.start.toFixed(2);
@@ -206,8 +211,22 @@ socket.on("transcription_update", (data) => {
 
 async function getMicrophone() {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    return new MediaRecorder(stream, { mimeType: "audio/webm" });
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true
+      } 
+    });
+    const settings = stream.getAudioTracks()[0].getSettings();
+    
+    // Update the sample rate in the form to match what we actually got
+    const sampleRateInput = document.getElementById('sample_rate');
+    if (sampleRateInput && settings.sampleRate) {
+      sampleRateInput.value = settings.sampleRate;
+    }
+    
+    return new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
   } catch (error) {
     console.error("Error accessing microphone:", error);
     throw error;
@@ -217,12 +236,12 @@ async function getMicrophone() {
 async function openMicrophone(microphone, socket) {
   return new Promise((resolve) => {
     microphone.onstart = () => {
-      console.log("Client: Microphone opened");
+      logDebug("Client: Microphone opened");
       document.body.classList.add("recording");
       resolve();
     };
     microphone.ondataavailable = async (event) => {
-      console.log("client: microphone data received");
+      logDebug(`Client: microphone data received (${event.data.size} bytes)`);
       if (event.data.size > 0) {
         socket.emit("audio_stream", event.data);
       }
@@ -234,7 +253,7 @@ async function openMicrophone(microphone, socket) {
 async function startRecording() {
   isRecording = true;
   microphone = await getMicrophone();
-  console.log("Client: Waiting to open microphone");
+  logDebug("Client: Waiting to open microphone");
   
   // Send configuration before starting microphone
   const config = getConfig();
@@ -500,6 +519,52 @@ function simplifyUrl() {
     updateRequestUrl(getConfig());
 }
 
+// Panel control functions
+function togglePanel(panelType) {
+    const panel = document.getElementById(`${panelType}Panel`);
+    if (panel) {
+        panel.classList.toggle('open');
+        logDebug(`${panelType} panel toggled: ${panel.classList.contains('open') ? 'opened' : 'closed'}`);
+    }
+}
+
+// Debug logging function
+function logDebug(message) {
+    const debugContent = document.getElementById('debugContent');
+    if (debugContent) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.textContent = `[${timestamp}] ${message}`;
+        debugContent.appendChild(logEntry);
+        debugContent.scrollTop = debugContent.scrollHeight;
+    }
+    console.log(message);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Only trigger if not typing in an input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.contentEditable === 'true') {
+        return;
+    }
+    
+    switch(e.key.toLowerCase()) {
+        case 's':
+            e.preventDefault();
+            togglePanel('settings');
+            break;
+        case 'd':
+            e.preventDefault();
+            togglePanel('debug');
+            break;
+        case 'escape':
+            // Close all panels on Escape
+            document.getElementById('settingsPanel').classList.remove('open');
+            document.getElementById('debugPanel').classList.remove('open');
+            break;
+    }
+});
+
 document.addEventListener("DOMContentLoaded", () => {
     const recordButton = document.getElementById("record");
     const configPanel = document.querySelector('.config-panel');
@@ -507,6 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const resetButton = document.getElementById('resetButton');
     const simplifyButton = document.getElementById('simplifyButton');
     const clearButton = document.getElementById('clearButton');
+    
     
     // Make URL editable
     const urlElement = document.getElementById('requestUrl');
@@ -518,6 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
         clearButton.addEventListener('click', () => {
             document.getElementById('captions').innerHTML = '';
             document.getElementById('finalCaptions').innerHTML = '';
+            logDebug('Cleared all transcription results');
         });
     }
     
@@ -599,6 +666,9 @@ document.addEventListener("DOMContentLoaded", () => {
         updateRequestUrl(getConfig());
     });
 
+    // Set default values when page loads
+    setDefaultValues();
+    
     // Initialize URL with current config instead of defaults
     updateRequestUrl(getConfig());
 

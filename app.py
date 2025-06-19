@@ -49,6 +49,10 @@ dg_connection = None
 def index():
     return render_template("index.html")
 
+@app.route("/config/defaults.json")
+def get_defaults():
+    return jsonify(DEFAULT_CONFIG)
+
 # Deepgram connection handling
 def initialize_deepgram_connection(config_options=None):
     global dg_connection, deepgram, config

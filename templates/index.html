@@ -15,39 +15,56 @@
     <script src="../static/script.js"></script>
   </head>
   <body class="">
-    <div class="container">
-      <div class="column left-column">
-        <div class="content">
+    <!-- Keyboard shortcuts info -->
+    <div id="shortcutInfo" class="shortcut-info">
+      Press <kbd>S</kbd> for Settings, <kbd>D</kbd> for Debug
+    </div>
+
+    <!-- Main transcription area -->
+    <div class="main-content">
+      <div class="main-header">
+        <img src="../static/logo.png" alt="Logo" class="main-logo">
+      </div>
+      
+      <div class="transcription-area">
+        <div class="captions-container final-container">
+          <div id="finalCaptions"></div>
+          <button id="clearButton" class="clear-button">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings sliding panel -->
+    <div id="settingsPanel" class="sliding-panel settings-panel">
+      <div class="panel-header">
+        <h3><i class="fas fa-cog"></i> Settings</h3>
+        <button class="panel-close" onclick="togglePanel('settings')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="panel-content">
+        <div class="recording-section">
           <div class="button-container">
             <input type="checkbox" id="record" class="mic-checkbox" />
             <label for="record" class="mic-button">
             </label>
           </div>
-          
-          <div class="upload-container">
-            <input type="file" id="audioFile" accept="audio/*" style="display: none;">
-            <button id="uploadButton" class="upload-button">
-              <i class="fas fa-upload"></i> Upload Audio
-            </button>
-            <div id="dropZone" class="drop-zone">
-              <i class="fas fa-cloud-upload-alt"></i>
-              <p>Drag & drop audio files here</p>
-            </div>
+        </div>
+        
+        <div class="file-upload-section">
+          <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+          <button id="uploadButton" class="upload-button">
+            <i class="fas fa-upload"></i> Upload Audio
+          </button>
+          <div id="dropZone" class="drop-zone">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Drag & drop audio files here</p>
           </div>
         </div>
-
-        <div class="url-display">
-          <code id="requestUrl">ws://localhost:8081/v1/listen?...</code>
-          <div class="url-buttons">
-            <button id="simplifyButton" class="copy-button">
-              <i class="fas fa-compress"></i>
-            </button>
-            <button id="copyUrl" class="copy-button">
-              <i class="fas fa-copy"></i>
-            </button>
-          </div>
-        </div>
-
+        
         <div class="config-panel">
           <div class="config-header" onclick="toggleConfig()">
             <h3>Configuration</h3>
@@ -143,16 +160,40 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="column right-column">
-        <div class="captions-container final-container">
-          <div id="finalCaptions"></div>
+    <!-- Debug sliding panel -->
+    <div id="debugPanel" class="sliding-panel debug-panel">
+      <div class="panel-header">
+        <h3><i class="fas fa-bug"></i> Debug</h3>
+        <button class="panel-close" onclick="togglePanel('debug')">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="panel-content">
+        <div class="url-display">
+          <code id="requestUrl">ws://localhost:8081/v1/listen?...</code>
+          <div class="url-buttons">
+            <button id="simplifyButton" class="copy-button">
+              <i class="fas fa-compress"></i>
+            </button>
+            <button id="copyUrl" class="copy-button">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
         </div>
-        <div class="captions-container interim-container">
-          <div id="captions"></div>
-          <button id="clearButton" class="clear-button">
-            <i class="fas fa-trash"></i>
-          </button>
+        
+        <div class="debug-sections">
+          <div class="captions-container interim-container">
+            <h4>Interim Results</h4>
+            <div id="captions"></div>
+          </div>
+          
+          <div id="debugLog" class="debug-log">
+            <h4>Debug Log</h4>
+            <div id="debugContent" class="debug-content"></div>
+          </div>
         </div>
       </div>
     </div>
