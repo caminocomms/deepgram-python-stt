@@ -86,6 +86,7 @@ def initialize_deepgram_connection(config_options=None):
                     "transcription": transcript,
                     "is_final": result.is_final,
                     "timing": timing,
+                    "speech_final": getattr(result, 'speech_final', False),
                 },
             )
 

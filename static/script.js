@@ -192,9 +192,20 @@ socket.on("transcription_update", (data) => {
     }
     // For final results, append as a new span
     const finalDiv = document.createElement("span");
-    finalDiv.textContent = data.transcription + " ";
+    finalDiv.textContent = data.transcription;
     finalDiv.className = "final";
     finalCaptions.appendChild(finalDiv);
+    
+    // Add line break if speech is final (person stopped talking)
+    if (data.speech_final) {
+      const lineBreak = document.createElement("br");
+      finalCaptions.appendChild(lineBreak);
+    } else {
+      // Add space for continuing speech
+      const space = document.createTextNode(" ");
+      finalCaptions.appendChild(space);
+    }
+    
     finalDiv.scrollIntoView({ behavior: "smooth" });
   } else if (!data.utterance_end) {
     // For interim results, update or create the interim span
@@ -267,6 +278,11 @@ async function startRecording() {
   updateRequestUrl(config);
   
   socket.emit("toggle_transcription", { action: "start", config: config });
+  
+  // Position the transcription to start just below the fade area
+  const finalCaptions = document.getElementById("finalCaptions");
+  const captionsContainer = finalCaptions.parentElement;
+  captionsContainer.scrollTop = 0;
   
   // Display the URL in the interim results container
   const interimCaptions = document.getElementById("captions");
