@@ -7,6 +7,9 @@ let processor;
 let changedParams = new Set();
 // Track if we're in a post-import state
 let isImported = false;
+// Video pause/resume functionality
+let videoPauseTimeout = null;
+let characterVideo = null;
 
 let DEFAULT_CONFIG = {
     "base_url": "api.deepgram.com",
@@ -162,6 +165,9 @@ socket.on("transcription_update", (data) => {
   const finalCaptions = document.getElementById("finalCaptions");
   
   logDebug(`Transcription received: ${data.is_final ? 'final' : 'interim'} - "${data.transcription}"`);
+  
+  // Video pause/resume logic
+  handleVideoActivity();
   
   let timeString = "";
   if (data.timing) {
@@ -554,6 +560,34 @@ function logDebug(message) {
         debugContent.scrollTop = debugContent.scrollHeight;
     }
     console.log(message);
+}
+
+// Video pause/resume handler
+function handleVideoActivity() {
+    if (!characterVideo) {
+        characterVideo = document.querySelector('.character-video');
+    }
+    
+    if (!characterVideo) return;
+    
+    // Resume video if paused
+    if (characterVideo.paused) {
+        characterVideo.play();
+        logDebug('Video resumed - transcription activity detected');
+    }
+    
+    // Clear any existing timeout
+    if (videoPauseTimeout) {
+        clearTimeout(videoPauseTimeout);
+    }
+    
+    // Set new timeout to pause video after 3 seconds of no activity
+    videoPauseTimeout = setTimeout(() => {
+        if (characterVideo && !characterVideo.paused) {
+            characterVideo.pause();
+            logDebug('Video paused - no transcription activity for 3 seconds');
+        }
+    }, 3000);
 }
 
 // Keyboard shortcuts

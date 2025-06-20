@@ -87,7 +87,8 @@ body {
   border-radius: 8px;
   background: transparent;
   box-sizing: border-box;
-  height: 100%;
+  height: calc(100% - 400px);
+  margin-bottom: 400px;
 }
 
 .captions-container::-webkit-scrollbar {
@@ -378,18 +379,21 @@ h1 {
   height: 100vh;
   padding: 20px;
   box-sizing: border-box;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 
 .main-footer {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 0;
-  margin-top: 40px;
-  margin-bottom: 20px;
+  margin: 0;
   gap: 20px;
+  z-index: 600;
 }
 
 .main-logo {
@@ -872,4 +876,15 @@ h1 {
   font-style: italic;
   text-align: center;
   padding: 10px;
+}
+
+/* Character video overlay */
+.character-video {
+  position: fixed;
+  bottom: 0;
+  right: -360px;
+  height: 30vh;
+  width: auto;
+  z-index: 500;
+  pointer-events: none;
 }
